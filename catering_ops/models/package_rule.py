@@ -21,7 +21,6 @@ class CateringPackageRule(models.Model):
             ("per_guest", "Per guest (all)"),
             ("per_10_guests", "Per 10 guests"),
             ("per_20_guests", "Per 20 guests"),
-            ("addon", "Add-on"),
         ],
         required=True,
         default="per_guest",

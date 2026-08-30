@@ -1,4 +1,159 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo noupdate="1">
-    <!-- Phase 4: seed Buffet package, mains, and quantity rules. -->
+    <record id="main_option_chicken" model="catering.main.option">
+        <field name="name">Chicken</field>
+        <field name="code">chicken</field>
+        <field name="sequence">10</field>
+        <field name="is_protein">True</field>
+    </record>
+    <record id="main_option_gyro" model="catering.main.option">
+        <field name="name">Gyro</field>
+        <field name="code">gyro</field>
+        <field name="sequence">20</field>
+        <field name="is_protein">True</field>
+    </record>
+    <record id="main_option_falafel" model="catering.main.option">
+        <field name="name">Falafel</field>
+        <field name="code">falafel</field>
+        <field name="sequence">30</field>
+        <field name="is_protein">False</field>
+    </record>
+
+    <record id="package_type_buffet" model="catering.package.type">
+        <field name="name">Little Greek Buffet</field>
+        <field name="code">buffet</field>
+        <field name="sequence">10</field>
+    </record>
+
+    <record id="rule_buffet_chicken_skewer" model="catering.package.rule">
+        <field name="name">Chicken skewers</field>
+        <field name="package_type_id" ref="package_type_buffet"/>
+        <field name="main_option_id" ref="main_option_chicken"/>
+        <field name="item_code">chicken_skewer</field>
+        <field name="uom_name">skewer</field>
+        <field name="apply_mode">per_option_guest</field>
+        <field name="qty">2.0</field>
+        <field name="sequence">10</field>
+    </record>
+    <record id="rule_buffet_gyro" model="catering.package.rule">
+        <field name="name">Gyro meat</field>
+        <field name="package_type_id" ref="package_type_buffet"/>
+        <field name="main_option_id" ref="main_option_gyro"/>
+        <field name="item_code">gyro_oz</field>
+        <field name="uom_name">oz</field>
+        <field name="apply_mode">per_option_guest</field>
+        <field name="qty">6.0</field>
+        <field name="sequence">20</field>
+    </record>
+    <record id="rule_buffet_falafel" model="catering.package.rule">
+        <field name="name">Falafel</field>
+        <field name="package_type_id" ref="package_type_buffet"/>
+        <field name="main_option_id" ref="main_option_falafel"/>
+        <field name="item_code">falafel_ball</field>
+        <field name="uom_name">ball</field>
+        <field name="apply_mode">per_option_guest</field>
+        <field name="qty">5.0</field>
+        <field name="sequence">30</field>
+    </record>
+    <record id="rule_buffet_rice" model="catering.package.rule">
+        <field name="name">Rice</field>
+        <field name="package_type_id" ref="package_type_buffet"/>
+        <field name="item_code">rice_scoop</field>
+        <field name="uom_name">scoop</field>
+        <field name="apply_mode">per_guest</field>
+        <field name="qty">1.0</field>
+        <field name="sequence">40</field>
+    </record>
+    <record id="rule_buffet_pita_base" model="catering.package.rule">
+        <field name="name">Cut pita (base)</field>
+        <field name="package_type_id" ref="package_type_buffet"/>
+        <field name="item_code">pita_base</field>
+        <field name="uom_name">pita</field>
+        <field name="apply_mode">per_guest</field>
+        <field name="qty">0.5</field>
+        <field name="sequence">50</field>
+    </record>
+    <record id="rule_buffet_hummus" model="catering.package.rule">
+        <field name="name">Hummus</field>
+        <field name="package_type_id" ref="package_type_buffet"/>
+        <field name="item_code">hummus_lb</field>
+        <field name="uom_name">lb</field>
+        <field name="apply_mode">per_10_guests</field>
+        <field name="qty">1.0</field>
+        <field name="is_addon">True</field>
+        <field name="sequence">60</field>
+    </record>
+    <record id="rule_buffet_pita_hummus" model="catering.package.rule">
+        <field name="name">Cut pita (hummus add-on)</field>
+        <field name="package_type_id" ref="package_type_buffet"/>
+        <field name="item_code">pita_hummus</field>
+        <field name="uom_name">pita</field>
+        <field name="apply_mode">per_guest</field>
+        <field name="qty">0.25</field>
+        <field name="is_addon">True</field>
+        <field name="sequence">70</field>
+    </record>
+    <record id="rule_buffet_tzatziki" model="catering.package.rule">
+        <field name="name">Tzatziki</field>
+        <field name="package_type_id" ref="package_type_buffet"/>
+        <field name="item_code">tzatziki_lb</field>
+        <field name="uom_name">lb</field>
+        <field name="apply_mode">per_10_guests</field>
+        <field name="qty">1.0</field>
+        <field name="sequence">80</field>
+    </record>
+    <record id="rule_buffet_dressing" model="catering.package.rule">
+        <field name="name">Greek dressing</field>
+        <field name="package_type_id" ref="package_type_buffet"/>
+        <field name="item_code">dressing_lb</field>
+        <field name="uom_name">lb</field>
+        <field name="apply_mode">per_10_guests</field>
+        <field name="qty">1.0</field>
+        <field name="sequence">90</field>
+    </record>
+    <record id="rule_buffet_salad" model="catering.package.rule">
+        <field name="name">Greek salad side</field>
+        <field name="package_type_id" ref="package_type_buffet"/>
+        <field name="item_code">salad_pan</field>
+        <field name="uom_name">pan</field>
+        <field name="apply_mode">per_10_guests</field>
+        <field name="qty">0.5</field>
+        <field name="sequence">100</field>
+    </record>
+    <record id="rule_buffet_cups" model="catering.package.rule">
+        <field name="name">Cups</field>
+        <field name="package_type_id" ref="package_type_buffet"/>
+        <field name="item_code">cup</field>
+        <field name="uom_name">each</field>
+        <field name="apply_mode">per_guest</field>
+        <field name="qty">1.0</field>
+        <field name="sequence">110</field>
+    </record>
+    <record id="rule_buffet_plates" model="catering.package.rule">
+        <field name="name">Plates</field>
+        <field name="package_type_id" ref="package_type_buffet"/>
+        <field name="item_code">plate</field>
+        <field name="uom_name">each</field>
+        <field name="apply_mode">per_guest</field>
+        <field name="qty">1.0</field>
+        <field name="sequence">120</field>
+    </record>
+    <record id="rule_buffet_napkins" model="catering.package.rule">
+        <field name="name">Napkins</field>
+        <field name="package_type_id" ref="package_type_buffet"/>
+        <field name="item_code">napkin</field>
+        <field name="uom_name">each</field>
+        <field name="apply_mode">per_guest</field>
+        <field name="qty">1.0</field>
+        <field name="sequence">130</field>
+    </record>
+    <record id="rule_buffet_plasticware" model="catering.package.rule">
+        <field name="name">Plasticware</field>
+        <field name="package_type_id" ref="package_type_buffet"/>
+        <field name="item_code">plasticware</field>
+        <field name="uom_name">each</field>
+        <field name="apply_mode">per_guest</field>
+        <field name="qty">1.0</field>
+        <field name="sequence">140</field>
+    </record>
 </odoo>
