@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_sale_order_form_catering_ops" model="ir.ui.view">
+        <field name="name">sale.order.form.catering.ops</field>
+        <field name="model">sale.order</field>
+        <field name="inherit_id" ref="sale.view_order_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//notebook" position="inside">
+                <page string="Catering" name="catering_ops">
+                    <group>
+                        <group>
+                            <field name="catering_package_type_id"/>
+                            <field name="catering_guest_count"/>
+                            <field name="catering_hummus"/>
+                        </group>
+                        <group>
+                            <field name="catering_chicken_count"/>
+                            <field name="catering_gyro_count"/>
+                            <field name="catering_falafel_count"/>
+                        </group>
+                    </group>
+                    <button name="action_compute_catering_prep" type="object" string="Compute Prep Sheet" class="btn-primary"/>
+                    <field name="catering_prep_line_ids">
+                        <list>
+                            <field name="name"/>
+                            <field name="quantity"/>
+                            <field name="uom_name"/>
+                        </list>
+                    </field>
+                </page>
+            </xpath>
+        </field>
+    </record>
+</odoo>

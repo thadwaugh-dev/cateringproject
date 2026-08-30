@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_catering_package_rule_tree" model="ir.ui.view">
+        <field name="name">catering.package.rule.tree</field>
+        <field name="model">catering.package.rule</field>
+        <field name="arch" type="xml">
+            <list>
+                <field name="sequence" widget="handle"/>
+                <field name="package_type_id"/>
+                <field name="name"/>
+                <field name="item_code"/>
+                <field name="main_option_id"/>
+                <field name="apply_mode"/>
+                <field name="qty"/>
+                <field name="uom_name"/>
+                <field name="is_addon"/>
+                <field name="active"/>
+            </list>
+        </field>
+    </record>
+    <record id="view_catering_package_rule_form" model="ir.ui.view">
+        <field name="name">catering.package.rule.form</field>
+        <field name="model">catering.package.rule</field>
+        <field name="arch" type="xml">
+            <form>
+                <sheet>
+                    <group>
+                        <field name="name"/>
+                        <field name="package_type_id"/>
+                        <field name="main_option_id"/>
+                        <field name="item_code"/>
+                        <field name="apply_mode"/>
+                        <field name="qty"/>
+                        <field name="uom_name"/>
+                        <field name="is_addon"/>
+                        <field name="sequence"/>
+                        <field name="active"/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+    <record id="action_catering_package_rule" model="ir.actions.act_window">
+        <field name="name">Rules</field>
+        <field name="res_model">catering.package.rule</field>
+        <field name="view_mode">list,form</field>
+    </record>
+</odoo>

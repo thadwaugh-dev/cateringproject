@@ -1,0 +1,20 @@
+{
+    "name": "Catering Ops",
+    "summary": "Kitchen pull/prep sheets for Little Greek catering",
+    "version": "18.0.1.0.0",
+    "category": "Sales",
+    "author": "Little Greek",
+    "license": "LGPL-3",
+    "depends": ["sale", "crm", "calendar"],
+    "data": [
+        "security/ir.model.access.csv",
+        "views/package_type_views.xml",
+        "views/main_option_views.xml",
+        "views/package_rule_views.xml",
+        "views/prep_sheet_views.xml",
+        "views/sale_order_views.xml",
+        "data/initial_rules.xml",
+    ],
+    "installable": True,
+    "application": True,
+}

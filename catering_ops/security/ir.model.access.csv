@@ -1,0 +1,11 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_catering_package_type_user,catering.package.type.user,model_catering_package_type,sales_team.group_sale_salesman,1,1,1,0
+access_catering_package_type_manager,catering.package.type.manager,model_catering_package_type,sales_team.group_sale_manager,1,1,1,1
+access_catering_main_option_user,catering.main.option.user,model_catering_main_option,sales_team.group_sale_salesman,1,1,1,0
+access_catering_main_option_manager,catering.main.option.manager,model_catering_main_option,sales_team.group_sale_manager,1,1,1,1
+access_catering_package_rule_user,catering.package.rule.user,model_catering_package_rule,sales_team.group_sale_salesman,1,1,1,0
+access_catering_package_rule_manager,catering.package.rule.manager,model_catering_package_rule,sales_team.group_sale_manager,1,1,1,1
+access_catering_prep_sheet_user,catering.prep.sheet.user,model_catering_prep_sheet,sales_team.group_sale_salesman,1,1,1,1
+access_catering_prep_sheet_manager,catering.prep.sheet.manager,model_catering_prep_sheet,sales_team.group_sale_manager,1,1,1,1
+access_catering_prep_sheet_line_user,catering.prep.sheet.line.user,model_catering_prep_sheet_line,sales_team.group_sale_salesman,1,1,1,1
+access_catering_prep_sheet_line_manager,catering.prep.sheet.line.manager,model_catering_prep_sheet_line,sales_team.group_sale_manager,1,1,1,1
