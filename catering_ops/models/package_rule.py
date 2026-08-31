@@ -27,3 +27,20 @@ class CateringPackageRule(models.Model):
     )
     qty = fields.Float(required=True, default=1.0)
     is_addon = fields.Boolean(default=False)
+    display_uom_name = fields.Char(
+        help="If set, prep sheet uses this UoM after display_divisor."
+    )
+    display_divisor = fields.Float(
+        help="Divide raw qty by this for the sheet. Gyro: 16 (oz to lb)."
+    )
+    display_round = fields.Selection(
+        [
+            ("none", "None"),
+            ("up_0_5", "Round up to nearest 0.5"),
+        ],
+        default="none",
+        required=True,
+    )
+    merge_group = fields.Char(
+        help="Rules with the same group are summed before the sheet prints. pita_cut combines base + hummus extra."
+    )

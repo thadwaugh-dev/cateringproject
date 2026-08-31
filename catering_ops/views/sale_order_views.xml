@@ -12,6 +12,9 @@
                             <field name="catering_package_type_id"/>
                             <field name="catering_guest_count"/>
                             <field name="catering_hummus"/>
+                            <field name="catering_pita_cut_style"/>
+                            <field name="catering_pita_grilled" invisible="catering_pita_cut_style != 'split'"/>
+                            <field name="catering_pita_fried" invisible="catering_pita_cut_style != 'split'"/>
                         </group>
                         <group>
                             <field name="catering_chicken_count"/>
@@ -21,7 +24,7 @@
                     </group>
                     <button name="action_compute_catering_prep" type="object" string="Compute Prep Sheet" class="btn-primary"/>
                     <field name="catering_prep_line_ids">
-                        <list>
+                        <list editable="bottom">
                             <field name="name"/>
                             <field name="quantity"/>
                             <field name="uom_name"/>

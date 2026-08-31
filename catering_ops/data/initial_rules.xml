@@ -43,6 +43,8 @@
         <field name="uom_name">oz</field>
         <field name="apply_mode">per_option_guest</field>
         <field name="qty">6.0</field>
+        <field name="display_uom_name">lb</field>
+        <field name="display_divisor">16.0</field>
         <field name="sequence">20</field>
     </record>
     <record id="rule_buffet_falafel" model="catering.package.rule">
@@ -71,6 +73,7 @@
         <field name="uom_name">pita</field>
         <field name="apply_mode">per_guest</field>
         <field name="qty">0.5</field>
+        <field name="merge_group">pita_cut</field>
         <field name="sequence">50</field>
     </record>
     <record id="rule_buffet_hummus" model="catering.package.rule">
@@ -91,6 +94,7 @@
         <field name="apply_mode">per_guest</field>
         <field name="qty">0.25</field>
         <field name="is_addon">True</field>
+        <field name="merge_group">pita_cut</field>
         <field name="sequence">70</field>
     </record>
     <record id="rule_buffet_tzatziki" model="catering.package.rule">
@@ -118,6 +122,7 @@
         <field name="uom_name">pan</field>
         <field name="apply_mode">per_10_guests</field>
         <field name="qty">0.5</field>
+        <field name="display_round">up_0_5</field>
         <field name="sequence">100</field>
     </record>
     <record id="rule_buffet_cups" model="catering.package.rule">
