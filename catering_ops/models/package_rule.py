@@ -1,4 +1,4 @@
-from odoo import fields, models
+from odoo import api, fields, models
 
 
 class CateringPackageRule(models.Model):
@@ -45,18 +45,15 @@ class CateringPackageRule(models.Model):
         help="Rules with the same group are summed before the sheet prints. pita_cut combines base + hummus extra."
     )
 
+    @api.model
     def apply_kitchen_display_defaults(self):
         """Force kitchen-display flags. Seed XML is noupdate so Upgrade skips those records."""
-        rules = self.search([]) if not self else self
         mapping = {
             "gyro_oz": {"display_uom_name": "lb", "display_divisor": 16.0},
             "pita_base": {"merge_group": "pita_cut"},
             "pita_hummus": {"merge_group": "pita_cut"},
             "salad_pan": {"display_round": "up_0_5"},
         }
-        for rule in rules:
-            vals = mapping.get(rule.item_code)
-            if vals:
-                rule.write(vals)
+        for item_code, vals in mapping.items():
+            self.search([("item_code", "=", item_code)]).write(vals)
         return True
-
