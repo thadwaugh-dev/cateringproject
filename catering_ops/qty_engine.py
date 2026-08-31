@@ -27,6 +27,25 @@ def compute_rule_qty(
     return 0.0
 
 
+
+def apply_item_fallbacks(rule):
+    """Temporary fallback if seed records were not updated (noupdate)."""
+    rule = dict(rule)
+    code = rule.get("item_code")
+    if code == "gyro_oz":
+        if not rule.get("display_uom_name"):
+            rule["display_uom_name"] = "lb"
+        if not float(rule.get("display_divisor") or 0):
+            rule["display_divisor"] = 16.0
+    if code in ("pita_base", "pita_hummus"):
+        if not rule.get("merge_group"):
+            rule["merge_group"] = "pita_cut"
+    if code == "salad_pan":
+        if (rule.get("display_round") or "none") == "none":
+            rule["display_round"] = "up_0_5"
+    return rule
+
+
 def apply_display(quantity, rule):
     qty = float(quantity or 0.0)
     divisor = float(rule.get("display_divisor") or 0.0)
@@ -72,6 +91,7 @@ def compute_prep_lines(
     lines = []
     seq = 10
     for rule in rules:
+        rule = apply_item_fallbacks(rule)
         quantity = compute_rule_qty(
             apply_mode=rule["apply_mode"],
             qty=rule["qty"],
