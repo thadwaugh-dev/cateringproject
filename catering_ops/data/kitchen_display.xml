@@ -1,17 +1,4 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
-    <!-- noupdate 0 so Upgrade applies kitchen-display flags to an already-installed DB -->
-    <record id="rule_buffet_gyro" model="catering.package.rule">
-        <field name="display_uom_name">lb</field>
-        <field name="display_divisor">16.0</field>
-    </record>
-    <record id="rule_buffet_pita_base" model="catering.package.rule">
-        <field name="merge_group">pita_cut</field>
-    </record>
-    <record id="rule_buffet_pita_hummus" model="catering.package.rule">
-        <field name="merge_group">pita_cut</field>
-    </record>
-    <record id="rule_buffet_salad" model="catering.package.rule">
-        <field name="display_round">up_0_5</field>
-    </record>
+    <function model="catering.package.rule" name="apply_kitchen_display_defaults"/>
 </odoo>
