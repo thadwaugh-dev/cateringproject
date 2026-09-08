@@ -50,9 +50,9 @@ class CateringPackageRule(models.Model):
         """Force kitchen-display flags. Seed XML is noupdate so Upgrade skips those records."""
         mapping = {
             "gyro_oz": {"display_uom_name": "lb", "display_divisor": 16.0},
-            "pita_base": {"merge_group": "pita_cut"},
-            "pita_hummus": {"merge_group": "pita_cut"},
-            "salad_pan": {"display_round": "up_0_5"},
+            "pita_base": {"merge_group": "pita_cut", "qty": 0.5},
+            "pita_hummus": {"merge_group": "pita_cut", "qty": 0.125},
+            "salad_pan": {"display_round": "none"},
         }
         for item_code, vals in mapping.items():
             self.search([("item_code", "=", item_code)]).write(vals)

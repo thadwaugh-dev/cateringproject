@@ -31,7 +31,7 @@ class SaleOrder(models.Model):
             ("split", "Split grilled / fried"),
         ],
         string="Cut pita style",
-        default="grilled",
+        default="split",
     )
     catering_pita_grilled = fields.Float(string="Split: grilled pita")
     catering_pita_fried = fields.Float(string="Split: fried pita")
@@ -116,7 +116,7 @@ class SaleOrder(models.Model):
                 guest_count=order.catering_guest_count or 0,
                 option_counts=option_counts,
                 hummus=order.catering_hummus,
-                pita_style=order.catering_pita_cut_style or "grilled",
+                pita_style=order.catering_pita_cut_style or "split",
                 pita_grilled=order.catering_pita_grilled or 0.0,
                 pita_fried=order.catering_pita_fried or 0.0,
             )

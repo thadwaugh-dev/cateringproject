@@ -27,7 +27,6 @@ def compute_rule_qty(
     return 0.0
 
 
-
 def apply_item_fallbacks(rule):
     """Temporary fallback if seed records were not updated (noupdate)."""
     rule = dict(rule)
@@ -40,9 +39,12 @@ def apply_item_fallbacks(rule):
     if code in ("pita_base", "pita_hummus"):
         if not rule.get("merge_group"):
             rule["merge_group"] = "pita_cut"
+    if code == "pita_hummus":
+        # Wife-review: hummus adds 0.125 pita/guest (0.5 + 0.125 = 0.625), not 0.25.
+        rule["qty"] = 0.125
     if code == "salad_pan":
-        if (rule.get("display_round") or "none") == "none":
-            rule["display_round"] = "up_0_5"
+        # Wife-review: print raw pans; do not round up.
+        rule["display_round"] = "none"
     return rule
 
 
@@ -58,21 +60,27 @@ def apply_display(quantity, rule):
     return qty, uom
 
 
-def split_pita(cut_total, pita_style="grilled", pita_grilled=0.0, pita_fried=0.0):
-    """Return (grilled, fried, whole). Whole pita is 0 on Buffet for now."""
+def split_pita(cut_total, pita_style="split", pita_grilled=0.0, pita_fried=0.0):
+    """Return (grilled, fried, whole). Whole pita is 0 on Buffet for now.
+
+    Default / split with empty fields = half grilled, half fried.
+    grilled style = 100% grilled; fried style = 100% fried.
+    """
     cut_total = float(cut_total or 0.0)
-    style = pita_style or "grilled"
+    style = pita_style or "split"
     if cut_total <= 0:
         return 0.0, 0.0, 0.0
+    if style == "grilled":
+        return cut_total, 0.0, 0.0
     if style == "fried":
         return 0.0, cut_total, 0.0
-    if style == "split":
-        grilled = float(pita_grilled or 0.0)
-        fried = float(pita_fried or 0.0)
-        if grilled == 0.0 and fried == 0.0:
-            return cut_total, 0.0, 0.0
-        return grilled, fried, 0.0
-    return cut_total, 0.0, 0.0
+    # split or any other default: half/half unless both split fields set
+    grilled = float(pita_grilled or 0.0)
+    fried = float(pita_fried or 0.0)
+    if grilled == 0.0 and fried == 0.0:
+        half = cut_total / 2.0
+        return half, half, 0.0
+    return grilled, fried, 0.0
 
 
 def compute_prep_lines(
@@ -80,7 +88,7 @@ def compute_prep_lines(
     guest_count,
     option_counts,
     hummus=False,
-    pita_style="grilled",
+    pita_style="split",
     pita_grilled=0.0,
     pita_fried=0.0,
 ):
@@ -170,10 +178,10 @@ BUFFET_RULES = [
     {"name": "Rice", "item_code": "rice_scoop", "uom_name": "scoop", "apply_mode": "per_guest", "qty": 1.0, "is_addon": False, "option_code": None, "sequence": 40},
     {"name": "Cut pita (base)", "item_code": "pita_base", "uom_name": "pita", "apply_mode": "per_guest", "qty": 0.5, "is_addon": False, "option_code": None, "sequence": 50, "merge_group": "pita_cut"},
     {"name": "Hummus", "item_code": "hummus_lb", "uom_name": "lb", "apply_mode": "per_10_guests", "qty": 1.0, "is_addon": True, "option_code": None, "sequence": 60},
-    {"name": "Cut pita (hummus add-on)", "item_code": "pita_hummus", "uom_name": "pita", "apply_mode": "per_guest", "qty": 0.25, "is_addon": True, "option_code": None, "sequence": 70, "merge_group": "pita_cut"},
+    {"name": "Cut pita (hummus add-on)", "item_code": "pita_hummus", "uom_name": "pita", "apply_mode": "per_guest", "qty": 0.125, "is_addon": True, "option_code": None, "sequence": 70, "merge_group": "pita_cut"},
     {"name": "Tzatziki", "item_code": "tzatziki_lb", "uom_name": "lb", "apply_mode": "per_10_guests", "qty": 1.0, "is_addon": False, "option_code": None, "sequence": 80},
     {"name": "Greek dressing", "item_code": "dressing_lb", "uom_name": "lb", "apply_mode": "per_10_guests", "qty": 1.0, "is_addon": False, "option_code": None, "sequence": 90},
-    {"name": "Greek salad side", "item_code": "salad_pan", "uom_name": "pan", "apply_mode": "per_10_guests", "qty": 0.5, "is_addon": False, "option_code": None, "sequence": 100, "display_round": "up_0_5"},
+    {"name": "Greek salad side", "item_code": "salad_pan", "uom_name": "pan", "apply_mode": "per_10_guests", "qty": 0.5, "is_addon": False, "option_code": None, "sequence": 100, "display_round": "none"},
     {"name": "Cups", "item_code": "cup", "uom_name": "each", "apply_mode": "per_guest", "qty": 1.0, "is_addon": False, "option_code": None, "sequence": 110},
     {"name": "Plates", "item_code": "plate", "uom_name": "each", "apply_mode": "per_guest", "qty": 1.0, "is_addon": False, "option_code": None, "sequence": 120},
     {"name": "Napkins", "item_code": "napkin", "uom_name": "each", "apply_mode": "per_guest", "qty": 1.0, "is_addon": False, "option_code": None, "sequence": 130},
