@@ -206,3 +206,22 @@ BYOP_RULES = [
     {"name": "Plasticware", "item_code": "plasticware", "uom_name": "each", "apply_mode": "per_guest", "qty": 1.0, "is_addon": False, "option_code": None, "sequence": 130},
 ]
 
+
+# Greek Salad seed mirror. Keep in sync with data/greek_salad_rules.xml.
+# Buffet and BYOP rules above stay frozen.
+GREEK_SALAD_RULES = [
+    {"name": "Chicken breast", "item_code": "chicken_breast", "uom_name": "breast", "apply_mode": "per_option_guest", "qty": 1.0, "is_addon": False, "option_code": "chicken", "sequence": 10},
+    {"name": "Gyro meat", "item_code": "gyro_oz", "uom_name": "oz", "apply_mode": "per_option_guest", "qty": 5.0, "is_addon": False, "option_code": "gyro", "sequence": 20, "display_uom_name": "lb", "display_divisor": 16.0},
+    {"name": "Falafel", "item_code": "falafel_ball", "uom_name": "ball", "apply_mode": "per_option_guest", "qty": 5.0, "is_addon": False, "option_code": "falafel", "sequence": 30},
+    {"name": "Cut pita (base)", "item_code": "pita_base", "uom_name": "pita", "apply_mode": "per_guest", "qty": 0.5, "is_addon": False, "option_code": None, "sequence": 40, "merge_group": "pita_cut"},
+    {"name": "Hummus", "item_code": "hummus_lb", "uom_name": "lb", "apply_mode": "per_10_guests", "qty": 1.0, "is_addon": True, "option_code": None, "sequence": 50},
+    {"name": "Cut pita (hummus add-on)", "item_code": "pita_hummus", "uom_name": "pita", "apply_mode": "per_guest", "qty": 0.125, "is_addon": True, "option_code": None, "sequence": 60, "merge_group": "pita_cut"},
+    {"name": "Tzatziki", "item_code": "tzatziki_lb", "uom_name": "lb", "apply_mode": "per_10_guests", "qty": 1.0, "is_addon": False, "option_code": None, "sequence": 70},
+    {"name": "Greek dressing", "item_code": "dressing_lb", "uom_name": "lb", "apply_mode": "per_10_guests", "qty": 1.0, "is_addon": False, "option_code": None, "sequence": 80},
+    {"name": "Greek salad", "item_code": "salad_pan", "uom_name": "pan", "apply_mode": "per_10_guests", "qty": 0.5, "is_addon": False, "option_code": None, "sequence": 90, "display_round": "none"},
+    {"name": "Cups", "item_code": "cup", "uom_name": "each", "apply_mode": "per_guest", "qty": 1.0, "is_addon": False, "option_code": None, "sequence": 100},
+    {"name": "Plates", "item_code": "plate", "uom_name": "each", "apply_mode": "per_guest", "qty": 1.0, "is_addon": False, "option_code": None, "sequence": 110},
+    {"name": "Napkins", "item_code": "napkin", "uom_name": "each", "apply_mode": "per_guest", "qty": 1.0, "is_addon": False, "option_code": None, "sequence": 120},
+    {"name": "Plasticware", "item_code": "plasticware", "uom_name": "each", "apply_mode": "per_guest", "qty": 1.0, "is_addon": False, "option_code": None, "sequence": 130},
+]
+
