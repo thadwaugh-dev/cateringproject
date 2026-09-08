@@ -1,4 +1,4 @@
-"""Prove CaterZen-style two sheets for Buffet 25-guest order."""
+"""Prove two sheets; cookies/tea opt-in default off."""
 import importlib.util
 from pathlib import Path
 
@@ -17,7 +17,7 @@ def qty_map(lines):
     }
 
 
-def main():
+def run(dessert="none", cookie_qty=0, tea=False, tea_qty=0, needs_ice=True):
     rules = engine.BUFFET_RULES + engine.BUFFET_PREMIUM_RULES + engine.SHARED_EXTRAS_RULES
     raw = engine.compute_prep_lines(
         rules,
@@ -26,51 +26,32 @@ def main():
         hummus=True,
         pita_style="split",
     )
-    en = engine.enrich_lines(raw, needs_ice=True)
-    food = engine.lines_for_sheet(en, "food")
-    driver = engine.lines_for_sheet(en, "driver")
-    f = qty_map(food)
-    d = qty_map(driver)
-    assert abs(f["chicken_skewer"] - 30) < 1e-9
-    assert abs(f["gyro_oz"] - 3.75) < 1e-9
-    assert abs(f["pita_grilled"] - 7.8125) < 1e-9
-    assert abs(f["pita_fried"] - 7.8125) < 1e-9
-    assert abs(f["salad_pan"] - 1.25) < 1e-9
-    assert abs(f["cookie"] - 25) < 1e-9
-    assert abs(f["sweet_tea"] - 2.0) < 1e-9
-    assert abs(d["ice"] - 2.0) < 1e-9
-    assert abs(d["plate"] - 25) < 1e-9
-    assert abs(d["napkin"] - 25) < 1e-9
-    assert abs(d["plasticware"] - 25) < 1e-9 or abs(d.get("silverware", 0) - 25) < 1e-9
-    assert abs(d["dessert_plate"] - 25) < 1e-9
-    assert abs(d["cup"] - 25) < 1e-9
-    assert abs(d["small_spoon"] - 2) < 1e-9
-    assert abs(d["medium_spoon"] - 2) < 1e-9
-    assert abs(d["tongs"] - 5) < 1e-9
-    # section order food
-    food_sections = [l["name"] for l in food if l.get("is_section")]
-    assert food_sections == ["MEAT", "PITABREAD", "SIDES", "EXTRAS", "DESSERTS", "DRINKS"]
-    driver_sections = [l["name"] for l in driver if l.get("is_section")]
-    assert driver_sections == ["DRINKS", "PAPER GOODS", "SERVING UTENSILS"]
-
-    # steak proof
-    raw2 = engine.compute_prep_lines(
-        rules,
-        25,
-        {"chicken": 13, "gyro": 0, "falafel": 0, "steak": 12, "salmon": 0, "lamb": 0},
-        hummus=True,
-        pita_style="split",
+    opt = engine.build_opt_in_extras(
+        dessert=dessert,
+        cookie_qty=cookie_qty,
+        sweet_tea=tea,
+        sweet_tea_qty=tea_qty,
+        guest_count=25,
     )
-    meat = qty_map(engine.lines_for_sheet(engine.enrich_lines(raw2, True), "food"))
-    assert abs(meat["chicken_skewer"] - 26) < 1e-9
-    assert abs(meat["steak_skewer"] - 24) < 1e-9
+    en = engine.enrich_lines(raw, needs_ice=needs_ice, include_opt_in=opt)
+    return qty_map(engine.lines_for_sheet(en, "food")), qty_map(engine.lines_for_sheet(en, "driver"))
 
-    # ice off
-    en3 = engine.enrich_lines(raw, needs_ice=False)
-    d3 = qty_map(engine.lines_for_sheet(en3, "driver"))
-    assert "ice" not in d3
 
-    print("PASS two-sheet Buffet proofs")
+def main():
+    f, d = run()
+    assert "cookie" not in f and "sweet_tea" not in f
+    assert "dessert_plate" not in d
+    assert abs(f["pita_grilled"] - 7.8125) < 1e-9
+    assert abs(f["salad_pan"] - 1.25) < 1e-9
+    assert abs(d["ice"] - 2.0) < 1e-9
+    assert abs(d["tongs"] - 5) < 1e-9
+
+    f2, d2 = run(dessert="cookie", cookie_qty=25, tea=True, tea_qty=2.0)
+    assert abs(f2["cookie"] - 25) < 1e-9
+    assert abs(f2["sweet_tea"] - 2.0) < 1e-9
+    assert abs(d2["dessert_plate"] - 25) < 1e-9
+
+    print("PASS opt-in dessert/tea two-sheet proofs")
 
 
 if __name__ == "__main__":

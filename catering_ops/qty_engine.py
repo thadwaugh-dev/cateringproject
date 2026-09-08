@@ -230,12 +230,32 @@ def place_line(item_code):
     return ITEM_PLACEMENT.get(item_code or "", ("food", "extras"))
 
 
-def enrich_lines(lines, needs_ice=True):
-    """Attach sheet_type/category, rename labels, drop ice if not needed."""
+def enrich_lines(lines, needs_ice=True, include_opt_in=None):
+    """Attach sheet_type/category, rename labels, drop ice if not needed.
+
+    Cookies / sweet tea / dessert plates are order opt-in only. Any leftover
+    package-rule lines for those codes are stripped unless injected via
+    include_opt_in.
+    """
+    opt_in_codes = {"cookie", "sweet_tea", "dessert_plate"}
     out = []
     for line in lines:
         code = line.get("item_code") or ""
+        if code in opt_in_codes:
+            continue
         if code == "ice" and not needs_ice:
+            continue
+        sheet_type, category = place_line(code)
+        name = DISPLAY_NAME_OVERRIDE.get(code, line.get("name"))
+        row = dict(line)
+        row["name"] = name
+        row["sheet_type"] = sheet_type
+        row["category"] = category
+        row["is_section"] = False
+        out.append(row)
+    for line in include_opt_in or []:
+        code = line.get("item_code") or ""
+        if not float(line.get("quantity") or 0):
             continue
         sheet_type, category = place_line(code)
         name = DISPLAY_NAME_OVERRIDE.get(code, line.get("name"))
@@ -340,14 +360,61 @@ GREEK_SALAD_RULES = [
 
 # Shared extras (cookies/tea/ice/utensils/dessert plates). Applied per package in XML.
 SHARED_EXTRAS_RULES = [
-    {"name": "Chocolate chip cookie", "item_code": "cookie", "uom_name": "each", "apply_mode": "per_guest", "qty": 1.0, "is_addon": False, "option_code": None, "sequence": 200},
-    {"name": "Sweet tea", "item_code": "sweet_tea", "uom_name": "gallon", "apply_mode": "per_guest", "qty": 0.08, "is_addon": False, "option_code": None, "sequence": 210},
+    # Ice + utensils always available via package rules. Cookies/tea/dessert plates are order opt-in.
     {"name": "Ice", "item_code": "ice", "uom_name": "each", "apply_mode": "per_guest", "qty": 0.08, "is_addon": False, "option_code": None, "sequence": 220},
-    {"name": "Dessert plates", "item_code": "dessert_plate", "uom_name": "each", "apply_mode": "per_guest", "qty": 1.0, "is_addon": False, "option_code": None, "sequence": 230},
     {"name": "Small spoon", "item_code": "small_spoon", "uom_name": "each", "apply_mode": "per_guest", "qty": 0.08, "is_addon": False, "option_code": None, "sequence": 240},
     {"name": "Medium spoon", "item_code": "medium_spoon", "uom_name": "each", "apply_mode": "per_guest", "qty": 0.08, "is_addon": False, "option_code": None, "sequence": 250},
     {"name": "Tongs", "item_code": "tongs", "uom_name": "each", "apply_mode": "per_guest", "qty": 0.20, "is_addon": False, "option_code": None, "sequence": 260},
 ]
+
+
+def build_opt_in_extras(dessert="none", cookie_qty=0.0, sweet_tea=False, sweet_tea_qty=0.0, guest_count=0):
+    """Optional dessert/tea lines. Default none/off. Dessert plates only if dessert selected."""
+    lines = []
+    seq = 200
+    if dessert == "cookie":
+        cq = float(cookie_qty or 0.0)
+        if cq <= 0:
+            cq = float(guest_count or 0.0)
+        if cq > 0:
+            lines.append(
+                {
+                    "sequence": seq,
+                    "name": "Chocolate chip cookie",
+                    "item_code": "cookie",
+                    "quantity": cq,
+                    "uom_name": "each",
+                }
+            )
+            seq += 10
+            # dessert plates follow guest count when a dessert is on
+            g = float(guest_count or 0.0)
+            if g > 0:
+                lines.append(
+                    {
+                        "sequence": seq,
+                        "name": "Dessert plates",
+                        "item_code": "dessert_plate",
+                        "quantity": g,
+                        "uom_name": "each",
+                    }
+                )
+                seq += 10
+    if sweet_tea:
+        tq = float(sweet_tea_qty or 0.0)
+        if tq <= 0:
+            tq = 0.08 * float(guest_count or 0.0)
+        if tq > 0:
+            lines.append(
+                {
+                    "sequence": seq,
+                    "name": "Sweet tea",
+                    "item_code": "sweet_tea",
+                    "quantity": tq,
+                    "uom_name": "gallon",
+                }
+            )
+    return lines
 
 BUFFET_PREMIUM_RULES = [
     {"name": "Steak skewers", "item_code": "steak_skewer", "uom_name": "skewer", "apply_mode": "per_option_guest", "qty": 2.0, "is_addon": False, "option_code": "steak", "sequence": 15},

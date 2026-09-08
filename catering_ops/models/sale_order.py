@@ -1,6 +1,6 @@
 from odoo import api, fields, models
 
-from ..qty_engine import compute_prep_lines, enrich_lines, lines_for_sheet
+from ..qty_engine import build_opt_in_extras, compute_prep_lines, enrich_lines, lines_for_sheet
 
 CATERING_WRITE_FIELDS = {
     "catering_package_type_id",
@@ -16,6 +16,10 @@ CATERING_WRITE_FIELDS = {
     "catering_pita_grilled",
     "catering_pita_fried",
     "catering_needs_ice",
+    "catering_dessert",
+    "catering_cookie_qty",
+    "catering_sweet_tea",
+    "catering_sweet_tea_qty",
 }
 
 
@@ -32,6 +36,18 @@ class SaleOrder(models.Model):
     catering_lamb_count = fields.Integer(string="Lamb guests")
     catering_hummus = fields.Boolean(string="Hummus add-on")
     catering_needs_ice = fields.Boolean(string="Needs ice", default=True)
+    catering_dessert = fields.Selection(
+        [
+            ("none", "None"),
+            ("cookie", "Chocolate chip cookie"),
+        ],
+        string="Dessert",
+        default="none",
+        required=True,
+    )
+    catering_cookie_qty = fields.Float(string="Cookie qty")
+    catering_sweet_tea = fields.Boolean(string="Sweet tea", default=False)
+    catering_sweet_tea_qty = fields.Float(string="Sweet tea (gal)")
     catering_pita_cut_style = fields.Selection(
         [
             ("grilled", "Grilled"),
@@ -68,6 +84,25 @@ class SaleOrder(models.Model):
         string="Prep quantities",
         readonly=False,
     )
+
+
+    @api.onchange("catering_dessert", "catering_guest_count")
+    def _onchange_catering_dessert(self):
+        for order in self:
+            if order.catering_dessert == "cookie":
+                if not order.catering_cookie_qty:
+                    order.catering_cookie_qty = order.catering_guest_count or 0.0
+            else:
+                order.catering_cookie_qty = 0.0
+
+    @api.onchange("catering_sweet_tea", "catering_guest_count")
+    def _onchange_catering_sweet_tea(self):
+        for order in self:
+            if order.catering_sweet_tea:
+                if not order.catering_sweet_tea_qty:
+                    order.catering_sweet_tea_qty = 0.08 * (order.catering_guest_count or 0.0)
+            else:
+                order.catering_sweet_tea_qty = 0.0
 
     @api.model_create_multi
     def create(self, vals_list):
@@ -178,7 +213,20 @@ class SaleOrder(models.Model):
                 pita_grilled=order.catering_pita_grilled or 0.0,
                 pita_fried=order.catering_pita_fried or 0.0,
             )
-            enriched = enrich_lines(raw, needs_ice=order.catering_needs_ice)
+            # Never pull cookie/tea/dessert plates from package rules; inject from order toggles.
+            raw = [r for r in raw if r.get("item_code") not in ("cookie", "sweet_tea", "dessert_plate")]
+            opt_in = build_opt_in_extras(
+                dessert=order.catering_dessert or "none",
+                cookie_qty=order.catering_cookie_qty or 0.0,
+                sweet_tea=order.catering_sweet_tea,
+                sweet_tea_qty=order.catering_sweet_tea_qty or 0.0,
+                guest_count=order.catering_guest_count or 0,
+            )
+            enriched = enrich_lines(
+                raw,
+                needs_ice=order.catering_needs_ice,
+                include_opt_in=opt_in,
+            )
 
             food = order._ensure_sheet("food", order.catering_food_sheet_id)
             driver = order._ensure_sheet("driver", order.catering_driver_sheet_id)

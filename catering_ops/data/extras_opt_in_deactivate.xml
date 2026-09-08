@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="rule_buffet_cookie" model="catering.package.rule"><field name="active">False</field></record>
+    <record id="rule_buffet_sweet_tea" model="catering.package.rule"><field name="active">False</field></record>
+    <record id="rule_buffet_dessert_plate" model="catering.package.rule"><field name="active">False</field></record>
+    <record id="rule_byop_cookie" model="catering.package.rule"><field name="active">False</field></record>
+    <record id="rule_byop_sweet_tea" model="catering.package.rule"><field name="active">False</field></record>
+    <record id="rule_byop_dessert_plate" model="catering.package.rule"><field name="active">False</field></record>
+    <record id="rule_greek_salad_cookie" model="catering.package.rule"><field name="active">False</field></record>
+    <record id="rule_greek_salad_sweet_tea" model="catering.package.rule"><field name="active">False</field></record>
+    <record id="rule_greek_salad_dessert_plate" model="catering.package.rule"><field name="active">False</field></record>
+</odoo>
