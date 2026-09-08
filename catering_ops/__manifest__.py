@@ -1,7 +1,7 @@
 {
     "name": "Catering Ops",
     "summary": "Kitchen pull/prep sheets for Little Greek catering",
-    "version": "18.0.1.4.0",
+    "version": "18.0.1.5.0",
     "category": "Sales",
     "author": "Little Greek",
     "license": "LGPL-3",
@@ -17,6 +17,8 @@
         "data/kitchen_display.xml",
         "data/byop_rules.xml",
         "data/greek_salad_rules.xml",
+        "data/extras_and_premium.xml",
+        "data/extras_shared.xml",
     ],
     "installable": True,
     "application": True,

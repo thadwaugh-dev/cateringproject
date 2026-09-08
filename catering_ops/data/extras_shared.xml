@@ -1,0 +1,192 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="rule_buffet_cookie" model="catering.package.rule">
+        <field name="name">Chocolate chip cookie</field>
+        <field name="package_type_id" ref="package_type_buffet"/>
+        <field name="item_code">cookie</field>
+        <field name="uom_name">each</field>
+        <field name="apply_mode">per_guest</field>
+        <field name="qty">1.0</field>
+        <field name="sequence">200</field>
+    </record>
+    <record id="rule_buffet_sweet_tea" model="catering.package.rule">
+        <field name="name">Sweet tea</field>
+        <field name="package_type_id" ref="package_type_buffet"/>
+        <field name="item_code">sweet_tea</field>
+        <field name="uom_name">gallon</field>
+        <field name="apply_mode">per_guest</field>
+        <field name="qty">0.08</field>
+        <field name="sequence">210</field>
+    </record>
+    <record id="rule_buffet_ice" model="catering.package.rule">
+        <field name="name">Ice</field>
+        <field name="package_type_id" ref="package_type_buffet"/>
+        <field name="item_code">ice</field>
+        <field name="uom_name">each</field>
+        <field name="apply_mode">per_guest</field>
+        <field name="qty">0.08</field>
+        <field name="sequence">220</field>
+    </record>
+    <record id="rule_buffet_dessert_plate" model="catering.package.rule">
+        <field name="name">Dessert plates</field>
+        <field name="package_type_id" ref="package_type_buffet"/>
+        <field name="item_code">dessert_plate</field>
+        <field name="uom_name">each</field>
+        <field name="apply_mode">per_guest</field>
+        <field name="qty">1.0</field>
+        <field name="sequence">230</field>
+    </record>
+    <record id="rule_buffet_small_spoon" model="catering.package.rule">
+        <field name="name">Small spoon</field>
+        <field name="package_type_id" ref="package_type_buffet"/>
+        <field name="item_code">small_spoon</field>
+        <field name="uom_name">each</field>
+        <field name="apply_mode">per_guest</field>
+        <field name="qty">0.08</field>
+        <field name="sequence">240</field>
+    </record>
+    <record id="rule_buffet_medium_spoon" model="catering.package.rule">
+        <field name="name">Medium spoon</field>
+        <field name="package_type_id" ref="package_type_buffet"/>
+        <field name="item_code">medium_spoon</field>
+        <field name="uom_name">each</field>
+        <field name="apply_mode">per_guest</field>
+        <field name="qty">0.08</field>
+        <field name="sequence">250</field>
+    </record>
+    <record id="rule_buffet_tongs" model="catering.package.rule">
+        <field name="name">Tongs</field>
+        <field name="package_type_id" ref="package_type_buffet"/>
+        <field name="item_code">tongs</field>
+        <field name="uom_name">each</field>
+        <field name="apply_mode">per_guest</field>
+        <field name="qty">0.2</field>
+        <field name="sequence">260</field>
+    </record>
+    <record id="rule_byop_cookie" model="catering.package.rule">
+        <field name="name">Chocolate chip cookie</field>
+        <field name="package_type_id" ref="package_type_byop"/>
+        <field name="item_code">cookie</field>
+        <field name="uom_name">each</field>
+        <field name="apply_mode">per_guest</field>
+        <field name="qty">1.0</field>
+        <field name="sequence">200</field>
+    </record>
+    <record id="rule_byop_sweet_tea" model="catering.package.rule">
+        <field name="name">Sweet tea</field>
+        <field name="package_type_id" ref="package_type_byop"/>
+        <field name="item_code">sweet_tea</field>
+        <field name="uom_name">gallon</field>
+        <field name="apply_mode">per_guest</field>
+        <field name="qty">0.08</field>
+        <field name="sequence">210</field>
+    </record>
+    <record id="rule_byop_ice" model="catering.package.rule">
+        <field name="name">Ice</field>
+        <field name="package_type_id" ref="package_type_byop"/>
+        <field name="item_code">ice</field>
+        <field name="uom_name">each</field>
+        <field name="apply_mode">per_guest</field>
+        <field name="qty">0.08</field>
+        <field name="sequence">220</field>
+    </record>
+    <record id="rule_byop_dessert_plate" model="catering.package.rule">
+        <field name="name">Dessert plates</field>
+        <field name="package_type_id" ref="package_type_byop"/>
+        <field name="item_code">dessert_plate</field>
+        <field name="uom_name">each</field>
+        <field name="apply_mode">per_guest</field>
+        <field name="qty">1.0</field>
+        <field name="sequence">230</field>
+    </record>
+    <record id="rule_byop_small_spoon" model="catering.package.rule">
+        <field name="name">Small spoon</field>
+        <field name="package_type_id" ref="package_type_byop"/>
+        <field name="item_code">small_spoon</field>
+        <field name="uom_name">each</field>
+        <field name="apply_mode">per_guest</field>
+        <field name="qty">0.08</field>
+        <field name="sequence">240</field>
+    </record>
+    <record id="rule_byop_medium_spoon" model="catering.package.rule">
+        <field name="name">Medium spoon</field>
+        <field name="package_type_id" ref="package_type_byop"/>
+        <field name="item_code">medium_spoon</field>
+        <field name="uom_name">each</field>
+        <field name="apply_mode">per_guest</field>
+        <field name="qty">0.08</field>
+        <field name="sequence">250</field>
+    </record>
+    <record id="rule_byop_tongs" model="catering.package.rule">
+        <field name="name">Tongs</field>
+        <field name="package_type_id" ref="package_type_byop"/>
+        <field name="item_code">tongs</field>
+        <field name="uom_name">each</field>
+        <field name="apply_mode">per_guest</field>
+        <field name="qty">0.2</field>
+        <field name="sequence">260</field>
+    </record>
+    <record id="rule_greek_salad_cookie" model="catering.package.rule">
+        <field name="name">Chocolate chip cookie</field>
+        <field name="package_type_id" ref="package_type_greek_salad"/>
+        <field name="item_code">cookie</field>
+        <field name="uom_name">each</field>
+        <field name="apply_mode">per_guest</field>
+        <field name="qty">1.0</field>
+        <field name="sequence">200</field>
+    </record>
+    <record id="rule_greek_salad_sweet_tea" model="catering.package.rule">
+        <field name="name">Sweet tea</field>
+        <field name="package_type_id" ref="package_type_greek_salad"/>
+        <field name="item_code">sweet_tea</field>
+        <field name="uom_name">gallon</field>
+        <field name="apply_mode">per_guest</field>
+        <field name="qty">0.08</field>
+        <field name="sequence">210</field>
+    </record>
+    <record id="rule_greek_salad_ice" model="catering.package.rule">
+        <field name="name">Ice</field>
+        <field name="package_type_id" ref="package_type_greek_salad"/>
+        <field name="item_code">ice</field>
+        <field name="uom_name">each</field>
+        <field name="apply_mode">per_guest</field>
+        <field name="qty">0.08</field>
+        <field name="sequence">220</field>
+    </record>
+    <record id="rule_greek_salad_dessert_plate" model="catering.package.rule">
+        <field name="name">Dessert plates</field>
+        <field name="package_type_id" ref="package_type_greek_salad"/>
+        <field name="item_code">dessert_plate</field>
+        <field name="uom_name">each</field>
+        <field name="apply_mode">per_guest</field>
+        <field name="qty">1.0</field>
+        <field name="sequence">230</field>
+    </record>
+    <record id="rule_greek_salad_small_spoon" model="catering.package.rule">
+        <field name="name">Small spoon</field>
+        <field name="package_type_id" ref="package_type_greek_salad"/>
+        <field name="item_code">small_spoon</field>
+        <field name="uom_name">each</field>
+        <field name="apply_mode">per_guest</field>
+        <field name="qty">0.08</field>
+        <field name="sequence">240</field>
+    </record>
+    <record id="rule_greek_salad_medium_spoon" model="catering.package.rule">
+        <field name="name">Medium spoon</field>
+        <field name="package_type_id" ref="package_type_greek_salad"/>
+        <field name="item_code">medium_spoon</field>
+        <field name="uom_name">each</field>
+        <field name="apply_mode">per_guest</field>
+        <field name="qty">0.08</field>
+        <field name="sequence">250</field>
+    </record>
+    <record id="rule_greek_salad_tongs" model="catering.package.rule">
+        <field name="name">Tongs</field>
+        <field name="package_type_id" ref="package_type_greek_salad"/>
+        <field name="item_code">tongs</field>
+        <field name="uom_name">each</field>
+        <field name="apply_mode">per_guest</field>
+        <field name="qty">0.2</field>
+        <field name="sequence">260</field>
+    </record>
+</odoo>

@@ -170,6 +170,119 @@ def compute_prep_lines(
     return lines
 
 
+
+
+ITEM_PLACEMENT = {
+    # food / MEAT
+    "chicken_skewer": ("food", "meat"),
+    "chicken_breast": ("food", "meat"),
+    "gyro_oz": ("food", "meat"),
+    "falafel_ball": ("food", "meat"),
+    "steak_skewer": ("food", "meat"),
+    "salmon_skewer": ("food", "meat"),
+    "lamb_skewer": ("food", "meat"),
+    # food / PITABREAD
+    "pita_whole": ("food", "pitabread"),
+    "pita_grilled": ("food", "pitabread"),
+    "pita_fried": ("food", "pitabread"),
+    # food / SIDES
+    "rice_scoop": ("food", "sides"),
+    "salad_pan": ("food", "sides"),
+    # food / EXTRAS
+    "hummus_lb": ("food", "extras"),
+    "tzatziki_lb": ("food", "extras"),
+    "dressing_lb": ("food", "extras"),
+    # food / DESSERTS + DRINKS
+    "cookie": ("food", "desserts"),
+    "sweet_tea": ("food", "drinks"),
+    # driver
+    "ice": ("driver", "drinks"),
+    "plate": ("driver", "paper_goods"),
+    "napkin": ("driver", "paper_goods"),
+    "plasticware": ("driver", "paper_goods"),
+    "silverware": ("driver", "paper_goods"),
+    "dessert_plate": ("driver", "paper_goods"),
+    "cup": ("driver", "paper_goods"),
+    "small_spoon": ("driver", "serving_utensils"),
+    "medium_spoon": ("driver", "serving_utensils"),
+    "tongs": ("driver", "serving_utensils"),
+}
+
+FOOD_CATEGORY_ORDER = ["meat", "pitabread", "sides", "extras", "desserts", "drinks"]
+DRIVER_CATEGORY_ORDER = ["drinks", "paper_goods", "serving_utensils"]
+CATEGORY_LABEL = {
+    "meat": "MEAT",
+    "pitabread": "PITABREAD",
+    "sides": "SIDES",
+    "extras": "EXTRAS",
+    "desserts": "DESSERTS",
+    "drinks": "DRINKS",
+    "paper_goods": "PAPER GOODS",
+    "serving_utensils": "SERVING UTENSILS",
+}
+DISPLAY_NAME_OVERRIDE = {
+    "plasticware": "Silverware packets",
+    "silverware": "Silverware packets",
+}
+
+
+def place_line(item_code):
+    return ITEM_PLACEMENT.get(item_code or "", ("food", "extras"))
+
+
+def enrich_lines(lines, needs_ice=True):
+    """Attach sheet_type/category, rename labels, drop ice if not needed."""
+    out = []
+    for line in lines:
+        code = line.get("item_code") or ""
+        if code == "ice" and not needs_ice:
+            continue
+        sheet_type, category = place_line(code)
+        name = DISPLAY_NAME_OVERRIDE.get(code, line.get("name"))
+        row = dict(line)
+        row["name"] = name
+        row["sheet_type"] = sheet_type
+        row["category"] = category
+        row["is_section"] = False
+        out.append(row)
+    return out
+
+
+def lines_for_sheet(lines, sheet_type):
+    """Return section headers + lines for one sheet. Empty categories omitted."""
+    order = FOOD_CATEGORY_ORDER if sheet_type == "food" else DRIVER_CATEGORY_ORDER
+    selected = [l for l in lines if l.get("sheet_type") == sheet_type and float(l.get("quantity") or 0) > 0]
+    by_cat = {}
+    for line in selected:
+        by_cat.setdefault(line["category"], []).append(line)
+    result = []
+    seq = 10
+    for cat in order:
+        rows = by_cat.get(cat) or []
+        if not rows:
+            continue
+        result.append(
+            {
+                "sequence": seq,
+                "name": CATEGORY_LABEL.get(cat, cat.upper()),
+                "item_code": "section_%s" % cat,
+                "quantity": 0.0,
+                "uom_name": "",
+                "sheet_type": sheet_type,
+                "category": cat,
+                "is_section": True,
+            }
+        )
+        seq += 10
+        for row in rows:
+            r = dict(row)
+            r["sequence"] = seq
+            r["is_section"] = False
+            result.append(r)
+            seq += 10
+    return result
+
+
 # Mirrors data/initial_rules.xml (Buffet only). Keep in sync.
 BUFFET_RULES = [
     {"name": "Chicken skewers", "item_code": "chicken_skewer", "uom_name": "skewer", "apply_mode": "per_option_guest", "qty": 2.0, "is_addon": False, "option_code": "chicken", "sequence": 10},
@@ -223,5 +336,22 @@ GREEK_SALAD_RULES = [
     {"name": "Plates", "item_code": "plate", "uom_name": "each", "apply_mode": "per_guest", "qty": 1.0, "is_addon": False, "option_code": None, "sequence": 110},
     {"name": "Napkins", "item_code": "napkin", "uom_name": "each", "apply_mode": "per_guest", "qty": 1.0, "is_addon": False, "option_code": None, "sequence": 120},
     {"name": "Plasticware", "item_code": "plasticware", "uom_name": "each", "apply_mode": "per_guest", "qty": 1.0, "is_addon": False, "option_code": None, "sequence": 130},
+]
+
+# Shared extras (cookies/tea/ice/utensils/dessert plates). Applied per package in XML.
+SHARED_EXTRAS_RULES = [
+    {"name": "Chocolate chip cookie", "item_code": "cookie", "uom_name": "each", "apply_mode": "per_guest", "qty": 1.0, "is_addon": False, "option_code": None, "sequence": 200},
+    {"name": "Sweet tea", "item_code": "sweet_tea", "uom_name": "gallon", "apply_mode": "per_guest", "qty": 0.08, "is_addon": False, "option_code": None, "sequence": 210},
+    {"name": "Ice", "item_code": "ice", "uom_name": "each", "apply_mode": "per_guest", "qty": 0.08, "is_addon": False, "option_code": None, "sequence": 220},
+    {"name": "Dessert plates", "item_code": "dessert_plate", "uom_name": "each", "apply_mode": "per_guest", "qty": 1.0, "is_addon": False, "option_code": None, "sequence": 230},
+    {"name": "Small spoon", "item_code": "small_spoon", "uom_name": "each", "apply_mode": "per_guest", "qty": 0.08, "is_addon": False, "option_code": None, "sequence": 240},
+    {"name": "Medium spoon", "item_code": "medium_spoon", "uom_name": "each", "apply_mode": "per_guest", "qty": 0.08, "is_addon": False, "option_code": None, "sequence": 250},
+    {"name": "Tongs", "item_code": "tongs", "uom_name": "each", "apply_mode": "per_guest", "qty": 0.20, "is_addon": False, "option_code": None, "sequence": 260},
+]
+
+BUFFET_PREMIUM_RULES = [
+    {"name": "Steak skewers", "item_code": "steak_skewer", "uom_name": "skewer", "apply_mode": "per_option_guest", "qty": 2.0, "is_addon": False, "option_code": "steak", "sequence": 15},
+    {"name": "Salmon skewers", "item_code": "salmon_skewer", "uom_name": "skewer", "apply_mode": "per_option_guest", "qty": 2.0, "is_addon": False, "option_code": "salmon", "sequence": 16},
+    {"name": "Lamb skewers", "item_code": "lamb_skewer", "uom_name": "skewer", "apply_mode": "per_option_guest", "qty": 2.0, "is_addon": False, "option_code": "lamb", "sequence": 17},
 ]
 

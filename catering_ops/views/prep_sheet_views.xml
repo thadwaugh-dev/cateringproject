@@ -6,6 +6,7 @@
         <field name="arch" type="xml">
             <list>
                 <field name="name"/>
+                <field name="sheet_type"/>
                 <field name="order_id"/>
                 <field name="guest_count"/>
             </list>
@@ -18,16 +19,29 @@
             <form>
                 <sheet>
                     <group>
-                        <field name="name"/>
-                        <field name="order_id"/>
-                        <field name="guest_count"/>
+                        <group>
+                            <field name="name"/>
+                            <field name="sheet_type"/>
+                            <field name="order_id"/>
+                            <field name="guest_count"/>
+                            <field name="header_order_number"/>
+                        </group>
+                        <group>
+                            <field name="header_event_date" invisible="sheet_type != 'food'"/>
+                            <field name="header_ready_time" invisible="sheet_type != 'food'"/>
+                            <field name="header_partner_name" invisible="sheet_type != 'driver'"/>
+                            <field name="header_partner_phone" invisible="sheet_type != 'driver'"/>
+                            <field name="header_partner_address" invisible="sheet_type != 'driver'"/>
+                        </group>
                     </group>
                     <field name="line_ids">
-                        <list editable="bottom">
+                        <list editable="bottom" decoration-bf="is_section == True">
+                            <field name="is_section" column_invisible="1"/>
+                            <field name="category" optional="hide"/>
                             <field name="name"/>
-                            <field name="item_code"/>
                             <field name="quantity"/>
                             <field name="uom_name"/>
+                            <field name="item_code" optional="hide"/>
                         </list>
                     </field>
                 </sheet>

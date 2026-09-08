@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Premium main options -->
+    <record id="main_option_steak" model="catering.main.option">
+        <field name="name">Steak</field>
+        <field name="code">steak</field>
+        <field name="sequence">40</field>
+        <field name="is_protein">True</field>
+    </record>
+    <record id="main_option_salmon" model="catering.main.option">
+        <field name="name">Salmon</field>
+        <field name="code">salmon</field>
+        <field name="sequence">50</field>
+        <field name="is_protein">True</field>
+    </record>
+    <record id="main_option_lamb" model="catering.main.option">
+        <field name="name">Lamb</field>
+        <field name="code">lamb</field>
+        <field name="sequence">60</field>
+        <field name="is_protein">True</field>
+    </record>
+
+    <!-- Buffet premium meats: 2 skewers per guest on that option -->
+    <record id="rule_buffet_steak_skewer" model="catering.package.rule">
+        <field name="name">Steak skewers</field>
+        <field name="package_type_id" ref="package_type_buffet"/>
+        <field name="main_option_id" ref="main_option_steak"/>
+        <field name="item_code">steak_skewer</field>
+        <field name="uom_name">skewer</field>
+        <field name="apply_mode">per_option_guest</field>
+        <field name="qty">2.0</field>
+        <field name="sequence">15</field>
+    </record>
+    <record id="rule_buffet_salmon_skewer" model="catering.package.rule">
+        <field name="name">Salmon skewers</field>
+        <field name="package_type_id" ref="package_type_buffet"/>
+        <field name="main_option_id" ref="main_option_salmon"/>
+        <field name="item_code">salmon_skewer</field>
+        <field name="uom_name">skewer</field>
+        <field name="apply_mode">per_option_guest</field>
+        <field name="qty">2.0</field>
+        <field name="sequence">16</field>
+    </record>
+    <record id="rule_buffet_lamb_skewer" model="catering.package.rule">
+        <field name="name">Lamb skewers</field>
+        <field name="package_type_id" ref="package_type_buffet"/>
+        <field name="main_option_id" ref="main_option_lamb"/>
+        <field name="item_code">lamb_skewer</field>
+        <field name="uom_name">skewer</field>
+        <field name="apply_mode">per_option_guest</field>
+        <field name="qty">2.0</field>
+        <field name="sequence">17</field>
+    </record>
+</odoo>

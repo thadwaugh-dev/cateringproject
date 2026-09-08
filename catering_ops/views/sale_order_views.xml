@@ -12,6 +12,7 @@
                             <field name="catering_package_type_id"/>
                             <field name="catering_guest_count"/>
                             <field name="catering_hummus"/>
+                            <field name="catering_needs_ice"/>
                             <field name="catering_pita_cut_style"/>
                             <field name="catering_pita_grilled" invisible="catering_pita_cut_style != 'split'"/>
                             <field name="catering_pita_fried" invisible="catering_pita_cut_style != 'split'"/>
@@ -20,11 +21,31 @@
                             <field name="catering_chicken_count"/>
                             <field name="catering_gyro_count"/>
                             <field name="catering_falafel_count"/>
+                            <field name="catering_steak_count"/>
+                            <field name="catering_salmon_count"/>
+                            <field name="catering_lamb_count"/>
                         </group>
                     </group>
-                    <button name="action_compute_catering_prep" type="object" string="Compute Prep Sheet" class="btn-primary"/>
-                    <field name="catering_prep_line_ids">
+                    <group>
+                        <button name="action_compute_catering_prep" type="object" string="Compute Prep Sheet" class="btn-primary"/>
+                        <button name="action_open_food_sheet" type="object" string="Open Food Sheet" class="btn-secondary"/>
+                        <button name="action_open_driver_sheet" type="object" string="Open Driver Pull Sheet" class="btn-secondary"/>
+                    </group>
+                    <separator string="Food Sheet (preview)"/>
+                    <field name="catering_food_line_ids">
                         <list editable="bottom">
+                            <field name="is_section" column_invisible="1"/>
+                            <field name="category" optional="hide"/>
+                            <field name="name"/>
+                            <field name="quantity"/>
+                            <field name="uom_name"/>
+                        </list>
+                    </field>
+                    <separator string="Driver Pull Sheet (preview)"/>
+                    <field name="catering_driver_line_ids">
+                        <list editable="bottom">
+                            <field name="is_section" column_invisible="1"/>
+                            <field name="category" optional="hide"/>
                             <field name="name"/>
                             <field name="quantity"/>
                             <field name="uom_name"/>
