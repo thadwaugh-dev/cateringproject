@@ -38,6 +38,15 @@ class SaleOrder(models.Model):
     catering_steak_count = fields.Integer(string="Steak guests")
     catering_salmon_count = fields.Integer(string="Salmon guests")
     catering_lamb_count = fields.Integer(string="Lamb guests")
+    catering_platter_total = fields.Integer(
+        string="Platter total",
+        compute="_compute_catering_platter_total",
+        help="Sum of chicken + gyro + falafel + steak + salmon + lamb. Must equal Guest count.",
+    )
+    catering_platter_status = fields.Char(
+        string="Platter check",
+        compute="_compute_catering_platter_total",
+    )
     catering_hummus = fields.Boolean(string="Hummus add-on")
     catering_hummus_qty = fields.Integer(
         string="Hummus for (people)",
@@ -98,7 +107,28 @@ class SaleOrder(models.Model):
         readonly=False,
     )
 
-
+    @api.depends(
+        "catering_guest_count",
+        "catering_chicken_count",
+        "catering_gyro_count",
+        "catering_falafel_count",
+        "catering_steak_count",
+        "catering_salmon_count",
+        "catering_lamb_count",
+    )
+    def _compute_catering_platter_total(self):
+        for order in self:
+            total = order._platter_guest_total()
+            guests = order.catering_guest_count or 0
+            order.catering_platter_total = total
+            if guests <= 0:
+                order.catering_platter_status = "Set Guest count"
+            elif total == guests:
+                order.catering_platter_status = "OK — matches Guest count"
+            else:
+                order.catering_platter_status = (
+                    "MISMATCH — platter total %s must equal Guest count %s" % (total, guests)
+                )
 
     def _platter_guest_total(self):
         self.ensure_one()
@@ -112,52 +142,36 @@ class SaleOrder(models.Model):
         )
 
     def _check_platter_matches_guests(self):
-        """Raise if main platter counts do not equal guest count."""
+        """Raise if package/guests missing or platter counts do not equal guest count."""
         for order in self:
+            if not order.catering_package_type_id:
+                raise UserError("Pick a Package on the Catering tab before Compute Prep Sheet.")
             guests = order.catering_guest_count or 0
-            if not order.catering_package_type_id or guests <= 0:
-                continue
+            if guests <= 0:
+                raise UserError("Set Guest count before Compute Prep Sheet.")
             total = order._platter_guest_total()
             if total != guests:
                 raise UserError(
-                    "Platter guest counts must equal Guest count. "
-                    "Guest count is %s but chicken + gyro + falafel + steak + salmon + lamb = %s."
-                    % (guests, total)
+                    "Platter guest counts must equal Guest count.\n\n"
+                    "Guest count: %s\n"
+                    "Chicken %s + Gyro %s + Falafel %s + Steak %s + Salmon %s + Lamb %s = %s\n\n"
+                    "Fix the platter numbers so they add up to Guest count, Save, then Compute again."
+                    % (
+                        guests,
+                        order.catering_chicken_count or 0,
+                        order.catering_gyro_count or 0,
+                        order.catering_falafel_count or 0,
+                        order.catering_steak_count or 0,
+                        order.catering_salmon_count or 0,
+                        order.catering_lamb_count or 0,
+                        total,
+                    )
                 )
-
-    @api.onchange(
-        "catering_guest_count",
-        "catering_chicken_count",
-        "catering_gyro_count",
-        "catering_falafel_count",
-        "catering_steak_count",
-        "catering_salmon_count",
-        "catering_lamb_count",
-        "catering_package_type_id",
-    )
-    def _onchange_platter_guest_balance(self):
-        for order in self:
-            guests = order.catering_guest_count or 0
-            if not order.catering_package_type_id or guests <= 0:
-                continue
-            total = order._platter_guest_total()
-            if total != guests:
-                return {
-                    "warning": {
-                        "title": "Platter count mismatch",
-                        "message": (
-                            "Guest count is %s but platter inputs total %s. "
-                            "They must match before Compute Prep Sheet."
-                            % (guests, total)
-                        ),
-                    }
-                }
 
     @api.onchange("catering_hummus")
     def _onchange_catering_hummus(self):
         for order in self:
             if order.catering_hummus:
-                # Default to guest count when turning on; field stays editable after.
                 order.catering_hummus_qty = order.catering_guest_count or 0
             else:
                 order.catering_hummus_qty = 0
@@ -168,19 +182,8 @@ class SaleOrder(models.Model):
             if order.catering_hummus and not order.catering_hummus_qty:
                 order.catering_hummus_qty = order.catering_guest_count or 0
 
-    @api.model_create_multi
-    def create(self, vals_list):
-        orders = super().create(vals_list)
-        orders.filtered("catering_package_type_id").action_compute_catering_prep()
-        return orders
-
-    def write(self, vals):
-        res = super().write(vals)
-        if self.env.context.get("skip_catering_prep"):
-            return res
-        if CATERING_WRITE_FIELDS & set(vals):
-            self.with_context(skip_catering_prep=True).action_compute_catering_prep()
-        return res
+    # Compute only from the button (and open-sheet actions). Auto-compute on
+    # every write made Save/Compute failures hard to see and easy to desync.
 
     def _catering_header_vals(self, sheet_type):
         self.ensure_one()
@@ -204,7 +207,6 @@ class SaleOrder(models.Model):
             else:
                 vals["header_partner_address"] = ""
         else:
-            # food sheet: use commitment/date fields if present
             event = getattr(self, "commitment_date", False) or self.date_order
             vals["header_event_date"] = str(event) if event else ""
             vals["header_ready_time"] = ""
@@ -233,10 +235,6 @@ class SaleOrder(models.Model):
         PrepLine = self.env["catering.prep.sheet.line"]
         for order in self:
             pkg = order.catering_package_type_id
-            if not pkg:
-                for sheet in (order.catering_food_sheet_id | order.catering_driver_sheet_id):
-                    sheet.line_ids.unlink()
-                continue
             rules = self.env["catering.package.rule"].search(
                 [("package_type_id", "=", pkg.id), ("active", "=", True)],
                 order="sequence, id",
@@ -284,7 +282,6 @@ class SaleOrder(models.Model):
                 pita_grilled=order.catering_pita_grilled or 0.0,
                 pita_fried=order.catering_pita_fried or 0.0,
             )
-            # Never pull cookie/tea/dessert plates from package rules; inject from order toggles.
             strip_codes = (
                 "cookie",
                 "baklava",
@@ -335,12 +332,37 @@ class SaleOrder(models.Model):
                     )
                 if vals_list:
                     PrepLine.create(vals_list)
-        return True
+
+        # Reload form so related Food/Driver previews refresh.
+        self.invalidate_recordset()
+        food_n = sum(len(o.catering_food_sheet_id.line_ids) for o in self)
+        driver_n = sum(len(o.catering_driver_sheet_id.line_ids) for o in self)
+        for order in self:
+            order.message_post(
+                body=(
+                    "Catering prep computed. Food Sheet lines: %s. Driver Pull Sheet lines: %s."
+                    % (len(order.catering_food_sheet_id.line_ids), len(order.catering_driver_sheet_id.line_ids))
+                )
+            )
+        # Returning True reloads the form; mismatch/package issues raise UserError (modal).
+        return {
+            "type": "ir.actions.client",
+            "tag": "display_notification",
+            "params": {
+                "title": "Prep sheets computed",
+                "message": "Food lines: %s. Driver lines: %s. Scroll down for previews."
+                % (food_n, driver_n),
+                "type": "success",
+                "sticky": False,
+            },
+        }
 
     def action_open_food_sheet(self):
         self.ensure_one()
         if not self.catering_food_sheet_id:
             self.action_compute_catering_prep()
+        if not self.catering_food_sheet_id:
+            raise UserError("Compute Prep Sheet first (Package, Guest count, and matching platter totals required).")
         return {
             "type": "ir.actions.act_window",
             "name": "Food Sheet",
@@ -354,6 +376,8 @@ class SaleOrder(models.Model):
         self.ensure_one()
         if not self.catering_driver_sheet_id:
             self.action_compute_catering_prep()
+        if not self.catering_driver_sheet_id:
+            raise UserError("Compute Prep Sheet first (Package, Guest count, and matching platter totals required).")
         return {
             "type": "ir.actions.act_window",
             "name": "Driver Pull Sheet",

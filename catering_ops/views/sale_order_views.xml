@@ -11,13 +11,15 @@
                         <group>
                             <field name="catering_package_type_id"/>
                             <field name="catering_guest_count"/>
+                            <field name="catering_platter_total"/>
+                            <field name="catering_platter_status"/>
                             <field name="catering_hummus"/>
                             <field name="catering_hummus_qty" invisible="not catering_hummus"/>
                             <field name="catering_pita_cut_style"/>
                             <field name="catering_pita_grilled" invisible="catering_pita_cut_style != 'split'"/>
                             <field name="catering_pita_fried" invisible="catering_pita_cut_style != 'split'"/>
                         </group>
-                        <group>
+                        <group string="Platter guests (must equal Guest count)">
                             <field name="catering_chicken_count"/>
                             <field name="catering_gyro_count"/>
                             <field name="catering_falafel_count"/>
