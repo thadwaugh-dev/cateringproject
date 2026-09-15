@@ -13,15 +13,15 @@ spec.loader.exec_module(engine)
 def main():
     guest_count = 25
     option_counts = {"chicken": 15, "gyro": 10, "falafel": 0}
-    hummus = True
     lines = engine.compute_prep_lines(
         engine.BUFFET_RULES,
         guest_count,
         option_counts,
-        hummus=hummus,
+        hummus=True,
+        hummus_count=25,
         pita_style="split",
     )
-    print("Buffet | guests=25 | chicken=15 | gyro=10 | falafel=0 | hummus=on | pita=split default")
+    print("Buffet | guests=25 | chicken=15 | gyro=10 | falafel=0 | hummus=25 people | pita=split")
     print("-" * 56)
     print(f"{'Item':<28} {'Qty':>10} {'UoM':>12}")
     for line in lines:
@@ -58,8 +58,22 @@ def main():
             "FAIL\nmissing=%s\nextra=%s\nforbidden=%s\nmismatches=%s"
             % (missing, extra, extra_bad, mismatches)
         )
-    print("-" * 56)
-    print("PASS")
+
+    # Partial hummus: 10 people on a 25-guest order
+    partial = engine.compute_prep_lines(
+        engine.BUFFET_RULES,
+        25,
+        option_counts,
+        hummus=True,
+        hummus_count=10,
+        pita_style="split",
+    )
+    pg = {l["item_code"]: l["quantity"] for l in partial}
+    assert abs(pg["hummus_lb"] - 1.0) < 1e-9, pg["hummus_lb"]
+    # base pita 0.5*25=12.5 + hummus 0.125*10=1.25 → 13.75 / 2 = 6.875 each
+    assert abs(pg["pita_grilled"] - 6.875) < 1e-9, pg["pita_grilled"]
+    assert abs(pg["pita_fried"] - 6.875) < 1e-9, pg["pita_fried"]
+    print("PASS (incl. hummus_count=10 partial)")
 
 
 if __name__ == "__main__":

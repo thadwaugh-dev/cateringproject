@@ -15,6 +15,7 @@ def main():
         guest_count=20,
         option_counts={"chicken": 12, "gyro": 8, "falafel": 0},
         hummus=True,
+        hummus_count=20,
         pita_style="split",
     )
     print("BYOP | guests=20 | chicken=12 | gyro=8 | falafel=0 | hummus=on | pita=split")
@@ -60,6 +61,7 @@ def main():
         25,
         {"chicken": 15, "gyro": 10, "falafel": 0},
         hummus=True,
+        hummus_count=25,
         pita_style="split",
     )
     bgot = {l["item_code"]: l["quantity"] for l in buffet}

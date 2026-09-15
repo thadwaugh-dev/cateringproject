@@ -10,12 +10,22 @@ def compute_rule_qty(
     guest_count=0,
     option_counts=None,
     hummus=False,
+    hummus_count=None,
 ):
-    if is_addon and not hummus:
-        return 0.0
+    """Hummus add-on rules scale off hummus_count (people), not order guest_count."""
     qty = float(qty or 0.0)
     guest_count = float(guest_count or 0.0)
     option_counts = option_counts or {}
+    if is_addon:
+        if hummus_count is not None:
+            base = float(hummus_count or 0.0)
+            if base <= 0:
+                return 0.0
+            guest_count = base
+        elif hummus:
+            pass  # use order guest_count
+        else:
+            return 0.0
     if apply_mode == "per_option_guest":
         return qty * float(option_counts.get(option_code or "", 0) or 0)
     if apply_mode == "per_guest":
@@ -88,11 +98,21 @@ def compute_prep_lines(
     guest_count,
     option_counts,
     hummus=False,
+    hummus_count=None,
     pita_style="split",
     pita_grilled=0.0,
     pita_fried=0.0,
 ):
-    """Build kitchen sheet lines. merge_group pita_cut is summed then split by style."""
+    """Build kitchen sheet lines. merge_group pita_cut is summed then split by style.
+
+    hummus_count = people the hummus add-on is for. If None and hummus=True,
+    falls back to guest_count (legacy prove scripts).
+    """
+    if hummus_count is None:
+        hummus_count = float(guest_count or 0.0) if hummus else 0.0
+    else:
+        hummus_count = float(hummus_count or 0.0)
+    hummus = hummus_count > 0
     pita_total = 0.0
     pita_seq = 50
     pita_uom = "pita"
@@ -108,6 +128,7 @@ def compute_prep_lines(
             guest_count=guest_count,
             option_counts=option_counts,
             hummus=hummus,
+            hummus_count=hummus_count,
         )
         quantity, uom = apply_display(quantity, rule)
         merge = rule.get("merge_group") or ""
@@ -199,7 +220,7 @@ ITEM_PLACEMENT = {
     "sweet_tea": ("food", "drinks"),
     "unsweet_tea": ("food", "drinks"),
     # driver
-    "ice": ("driver", "drinks"),
+    "ice": ("food", "drinks"),
     "plate": ("driver", "paper_goods"),
     "napkin": ("driver", "paper_goods"),
     "plasticware": ("driver", "paper_goods"),

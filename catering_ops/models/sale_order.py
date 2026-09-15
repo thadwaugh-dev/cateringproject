@@ -12,6 +12,7 @@ CATERING_WRITE_FIELDS = {
     "catering_salmon_count",
     "catering_lamb_count",
     "catering_hummus",
+    "catering_hummus_qty",
     "catering_pita_cut_style",
     "catering_pita_grilled",
     "catering_pita_fried",
@@ -36,6 +37,11 @@ class SaleOrder(models.Model):
     catering_salmon_count = fields.Integer(string="Salmon guests")
     catering_lamb_count = fields.Integer(string="Lamb guests")
     catering_hummus = fields.Boolean(string="Hummus add-on")
+    catering_hummus_qty = fields.Integer(
+        string="Hummus for (people)",
+        default=0,
+        help="People the hummus add-on covers. Hummus lb and hummus pita add-on scale from this, not guest count.",
+    )
     catering_needs_ice = fields.Boolean(string="Needs ice", default=True)
     # Legacy unused after multi-qty; kept so Upgrade does not explode old views briefly.
     catering_dessert = fields.Selection(
@@ -89,6 +95,16 @@ class SaleOrder(models.Model):
         readonly=False,
     )
 
+
+
+    @api.onchange("catering_hummus", "catering_guest_count")
+    def _onchange_catering_hummus(self):
+        for order in self:
+            if order.catering_hummus:
+                if not order.catering_hummus_qty:
+                    order.catering_hummus_qty = order.catering_guest_count or 0
+            else:
+                order.catering_hummus_qty = 0
 
     @api.model_create_multi
     def create(self, vals_list):
@@ -190,11 +206,17 @@ class SaleOrder(models.Model):
                         "merge_group": rule.merge_group,
                     }
                 )
+            hummus_qty = order.catering_hummus_qty or 0
+            if order.catering_hummus and not hummus_qty:
+                hummus_qty = order.catering_guest_count or 0
+            if not order.catering_hummus:
+                hummus_qty = 0
             raw = compute_prep_lines(
                 rule_dicts,
                 guest_count=order.catering_guest_count or 0,
                 option_counts=option_counts,
-                hummus=order.catering_hummus,
+                hummus=bool(order.catering_hummus and hummus_qty),
+                hummus_count=hummus_qty,
                 pita_style=order.catering_pita_cut_style or "split",
                 pita_grilled=order.catering_pita_grilled or 0.0,
                 pita_fried=order.catering_pita_fried or 0.0,

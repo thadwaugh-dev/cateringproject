@@ -24,6 +24,7 @@ def run(**opt):
         25,
         {"chicken": 15, "gyro": 10, "falafel": 0, "steak": 0, "salmon": 0, "lamb": 0},
         hummus=True,
+        hummus_count=25,
         pita_style="split",
     )
     opt_in = engine.build_opt_in_extras(guest_count=25, **opt)
@@ -37,7 +38,8 @@ def main():
         assert code not in f, code
     assert "dessert_plate" not in d
     assert abs(f["pita_grilled"] - 7.8125) < 1e-9
-    assert abs(d["ice"] - 2.0) < 1e-9
+    assert abs(f["ice"] - 2.0) < 1e-9
+    assert "ice" not in d
 
     f2, d2 = run(
         cookie_qty=25,

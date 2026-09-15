@@ -15,6 +15,7 @@ def main():
         guest_count=20,
         option_counts={"chicken": 10, "gyro": 10, "falafel": 0},
         hummus=True,
+        hummus_count=20,
         pita_style="split",
     )
     print("Greek Salad | guests=20 | chicken=10 | gyro=10 | falafel=0 | hummus=on | pita=split")
@@ -55,12 +56,14 @@ def main():
         )
     # regressions
     buffet = engine.compute_prep_lines(
-        engine.BUFFET_RULES, 25, {"chicken": 15, "gyro": 10, "falafel": 0}, hummus=True, pita_style="split"
+        engine.BUFFET_RULES, 25, {"chicken": 15, "gyro": 10, "falafel": 0}, hummus=True,
+        hummus_count=25, pita_style="split"
     )
     bgot = {l["item_code"]: l["quantity"] for l in buffet}
     assert abs(bgot["pita_grilled"] - 7.8125) < 1e-9 and abs(bgot["salad_pan"] - 1.25) < 1e-9
     byop = engine.compute_prep_lines(
-        engine.BYOP_RULES, 20, {"chicken": 12, "gyro": 8, "falafel": 0}, hummus=True, pita_style="split"
+        engine.BYOP_RULES, 20, {"chicken": 12, "gyro": 8, "falafel": 0}, hummus=True,
+        hummus_count=20, pita_style="split"
     )
     ygot = {l["item_code"]: l["quantity"] for l in byop}
     assert abs(ygot["chicken_breast"] - 12.0) < 1e-9 and abs(ygot["pita_whole"] - 20.0) < 1e-9
