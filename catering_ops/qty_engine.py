@@ -71,9 +71,11 @@ def apply_display(quantity, rule):
 
 
 def split_pita(cut_total, pita_style="split", pita_grilled=0.0, pita_fried=0.0):
-    """Return (grilled, fried, whole). Whole pita is 0 on Buffet for now.
+    """Return (grilled, fried, whole) pita quantities. Whole is 0 on Buffet for now.
 
-    Default / split with empty fields = half grilled, half fried.
+    pita_grilled / pita_fried are PEOPLE counts for a split override (not raw pitas).
+    Example: 20 guests, 15 grilled people + 5 fried people → cut_total split 15/20 and 5/20.
+    Default / split with both people fields empty = half grilled, half fried.
     grilled style = 100% grilled; fried style = 100% fried.
     """
     cut_total = float(cut_total or 0.0)
@@ -84,13 +86,20 @@ def split_pita(cut_total, pita_style="split", pita_grilled=0.0, pita_fried=0.0):
         return cut_total, 0.0, 0.0
     if style == "fried":
         return 0.0, cut_total, 0.0
-    # split or any other default: half/half unless both split fields set
-    grilled = float(pita_grilled or 0.0)
-    fried = float(pita_fried or 0.0)
-    if grilled == 0.0 and fried == 0.0:
+    grilled_people = float(pita_grilled or 0.0)
+    fried_people = float(pita_fried or 0.0)
+    if grilled_people == 0.0 and fried_people == 0.0:
         half = cut_total / 2.0
         return half, half, 0.0
-    return grilled, fried, 0.0
+    people_total = grilled_people + fried_people
+    if people_total <= 0:
+        half = cut_total / 2.0
+        return half, half, 0.0
+    return (
+        cut_total * (grilled_people / people_total),
+        cut_total * (fried_people / people_total),
+        0.0,
+    )
 
 
 def compute_prep_lines(
@@ -277,6 +286,13 @@ def enrich_lines(lines, needs_ice=True, include_opt_in=None):
         row["sheet_type"] = sheet_type
         row["category"] = category
         row["is_section"] = False
+        if code == "ice":
+            row["quantity"] = 0.0
+            row["uom_name"] = ""
+            row["qty_display"] = "YES"
+        elif not row.get("qty_display"):
+            q = float(row.get("quantity") or 0.0)
+            row["qty_display"] = ("%s" % q).rstrip("0").rstrip(".") if q else ""
         out.append(row)
     for line in include_opt_in or []:
         code = line.get("item_code") or ""
@@ -289,14 +305,29 @@ def enrich_lines(lines, needs_ice=True, include_opt_in=None):
         row["sheet_type"] = sheet_type
         row["category"] = category
         row["is_section"] = False
+        q = float(row.get("quantity") or 0.0)
+        row["qty_display"] = ("%s" % q).rstrip("0").rstrip(".") if q else ""
         out.append(row)
     return out
 
 
+def _line_visible_on_sheet(line):
+    if line.get("qty_display"):
+        return True
+    return float(line.get("quantity") or 0) > 0
+
+
 def lines_for_sheet(lines, sheet_type):
-    """Return section headers + lines for one sheet. Empty categories omitted."""
+    """Return section headers + lines for one sheet. Empty categories omitted.
+
+    Section headers have blank qty_display (no 0.0). Ice uses YES/NO text.
+    """
     order = FOOD_CATEGORY_ORDER if sheet_type == "food" else DRIVER_CATEGORY_ORDER
-    selected = [l for l in lines if l.get("sheet_type") == sheet_type and float(l.get("quantity") or 0) > 0]
+    selected = [
+        l
+        for l in lines
+        if l.get("sheet_type") == sheet_type and _line_visible_on_sheet(l)
+    ]
     by_cat = {}
     for line in selected:
         by_cat.setdefault(line["category"], []).append(line)
@@ -312,6 +343,7 @@ def lines_for_sheet(lines, sheet_type):
                 "name": CATEGORY_LABEL.get(cat, cat.upper()),
                 "item_code": "section_%s" % cat,
                 "quantity": 0.0,
+                "qty_display": "",
                 "uom_name": "",
                 "sheet_type": sheet_type,
                 "category": cat,
@@ -323,6 +355,9 @@ def lines_for_sheet(lines, sheet_type):
             r = dict(row)
             r["sequence"] = seq
             r["is_section"] = False
+            if not r.get("qty_display") and not r.get("is_section"):
+                q = float(r.get("quantity") or 0.0)
+                r["qty_display"] = ("%s" % q).rstrip("0").rstrip(".") if q else ""
             result.append(r)
             seq += 10
     return result

@@ -38,7 +38,7 @@ def main():
         assert code not in f, code
     assert "dessert_plate" not in d
     assert abs(f["pita_grilled"] - 7.8125) < 1e-9
-    assert abs(f["ice"] - 2.0) < 1e-9
+    assert "ice" in f  # present on food sheet
     assert "ice" not in d
 
     f2, d2 = run(
@@ -57,6 +57,16 @@ def main():
     assert abs(f2["unsweet_tea"] - 1.0) < 1e-9
     assert abs(d2["dessert_plate"] - 25) < 1e-9
 
+    # Ice shows YES (not a calculated amount)
+    rules = engine.BUFFET_RULES + engine.BUFFET_PREMIUM_RULES + engine.SHARED_EXTRAS_RULES
+    raw = engine.compute_prep_lines(
+        rules, 25, {"chicken": 15, "gyro": 10, "falafel": 0, "steak": 0, "salmon": 0, "lamb": 0},
+        hummus=True, hummus_count=25, pita_style="split",
+    )
+    food_lines = engine.lines_for_sheet(engine.enrich_lines(raw, needs_ice=True), "food")
+    ice = next(l for l in food_lines if l.get("item_code") == "ice")
+    assert ice.get("qty_display") == "YES", ice
+    assert all((l.get("qty_display") or "") == "" for l in food_lines if l.get("is_section"))
     print("PASS multi dessert/tea two-sheet proofs")
 
 

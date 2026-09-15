@@ -39,7 +39,8 @@
                             <field name="is_section" column_invisible="1"/>
                             <field name="category" optional="hide"/>
                             <field name="name"/>
-                            <field name="quantity"/>
+                            <field name="qty_display" string="Qty"/>
+                            <field name="quantity" column_invisible="1"/>
                             <field name="uom_name"/>
                             <field name="item_code" optional="hide"/>
                         </list>

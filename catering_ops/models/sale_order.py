@@ -79,8 +79,14 @@ class SaleOrder(models.Model):
         string="Cut pita style",
         default="split",
     )
-    catering_pita_grilled = fields.Float(string="Split: grilled pita")
-    catering_pita_fried = fields.Float(string="Split: fried pita")
+    catering_pita_grilled = fields.Integer(
+        string="Split: grilled people",
+        help="People who want grilled cut pita. System splits total cut pita by grilled vs fried people. Leave both 0 for half/half.",
+    )
+    catering_pita_fried = fields.Integer(
+        string="Split: fried people",
+        help="People who want fried cut pita. System splits total cut pita by grilled vs fried people. Leave both 0 for half/half.",
+    )
     catering_food_sheet_id = fields.Many2one(
         "catering.prep.sheet", string="Food Sheet", copy=False
     )
@@ -324,7 +330,10 @@ class SaleOrder(models.Model):
                             "sequence": line["sequence"],
                             "name": line["name"],
                             "item_code": line.get("item_code"),
-                            "quantity": 0.0 if line.get("is_section") else line["quantity"],
+                            "quantity": 0.0 if line.get("is_section") else float(line.get("quantity") or 0.0),
+                            "qty_display": ""
+                            if line.get("is_section")
+                            else (line.get("qty_display") or ""),
                             "uom_name": line.get("uom_name") or "",
                             "category": line.get("category"),
                             "is_section": bool(line.get("is_section")),

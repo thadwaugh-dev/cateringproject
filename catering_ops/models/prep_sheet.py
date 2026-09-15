@@ -41,6 +41,10 @@ class CateringPrepSheetLine(models.Model):
     name = fields.Char(required=True)
     item_code = fields.Char()
     quantity = fields.Float()
+    qty_display = fields.Char(
+        string="Qty",
+        help="Shown on sheets. Blank for section headers; YES/NO for ice; otherwise the amount.",
+    )
     uom_name = fields.Char()
     category = fields.Selection(
         [
