@@ -16,10 +16,11 @@ CATERING_WRITE_FIELDS = {
     "catering_pita_grilled",
     "catering_pita_fried",
     "catering_needs_ice",
-    "catering_dessert",
     "catering_cookie_qty",
-    "catering_sweet_tea",
+    "catering_baklava_qty",
+    "catering_dessert_triangle_qty",
     "catering_sweet_tea_qty",
+    "catering_unsweet_tea_qty",
 }
 
 
@@ -36,18 +37,21 @@ class SaleOrder(models.Model):
     catering_lamb_count = fields.Integer(string="Lamb guests")
     catering_hummus = fields.Boolean(string="Hummus add-on")
     catering_needs_ice = fields.Boolean(string="Needs ice", default=True)
+    # Legacy unused after multi-qty; kept so Upgrade does not explode old views briefly.
     catering_dessert = fields.Selection(
         [
             ("none", "None"),
             ("cookie", "Chocolate chip cookie"),
         ],
-        string="Dessert",
+        string="Dessert (legacy)",
         default="none",
-        required=True,
     )
-    catering_cookie_qty = fields.Float(string="Cookie qty")
-    catering_sweet_tea = fields.Boolean(string="Sweet tea", default=False)
-    catering_sweet_tea_qty = fields.Float(string="Sweet tea (gal)")
+    catering_sweet_tea = fields.Boolean(string="Sweet tea (legacy)", default=False)
+    catering_cookie_qty = fields.Float(string="Chocolate chip cookie", default=0.0)
+    catering_baklava_qty = fields.Float(string="Baklava", default=0.0)
+    catering_dessert_triangle_qty = fields.Float(string="Assorted Dessert Triangles", default=0.0)
+    catering_sweet_tea_qty = fields.Float(string="Sweet tea (gal)", default=0.0)
+    catering_unsweet_tea_qty = fields.Float(string="Unsweet tea (gal)", default=0.0)
     catering_pita_cut_style = fields.Selection(
         [
             ("grilled", "Grilled"),
@@ -85,24 +89,6 @@ class SaleOrder(models.Model):
         readonly=False,
     )
 
-
-    @api.onchange("catering_dessert", "catering_guest_count")
-    def _onchange_catering_dessert(self):
-        for order in self:
-            if order.catering_dessert == "cookie":
-                if not order.catering_cookie_qty:
-                    order.catering_cookie_qty = order.catering_guest_count or 0.0
-            else:
-                order.catering_cookie_qty = 0.0
-
-    @api.onchange("catering_sweet_tea", "catering_guest_count")
-    def _onchange_catering_sweet_tea(self):
-        for order in self:
-            if order.catering_sweet_tea:
-                if not order.catering_sweet_tea_qty:
-                    order.catering_sweet_tea_qty = 0.08 * (order.catering_guest_count or 0.0)
-            else:
-                order.catering_sweet_tea_qty = 0.0
 
     @api.model_create_multi
     def create(self, vals_list):
@@ -214,12 +200,21 @@ class SaleOrder(models.Model):
                 pita_fried=order.catering_pita_fried or 0.0,
             )
             # Never pull cookie/tea/dessert plates from package rules; inject from order toggles.
-            raw = [r for r in raw if r.get("item_code") not in ("cookie", "sweet_tea", "dessert_plate")]
+            strip_codes = (
+                "cookie",
+                "baklava",
+                "dessert_triangle",
+                "sweet_tea",
+                "unsweet_tea",
+                "dessert_plate",
+            )
+            raw = [r for r in raw if r.get("item_code") not in strip_codes]
             opt_in = build_opt_in_extras(
-                dessert=order.catering_dessert or "none",
                 cookie_qty=order.catering_cookie_qty or 0.0,
-                sweet_tea=order.catering_sweet_tea,
+                baklava_qty=order.catering_baklava_qty or 0.0,
+                dessert_triangle_qty=order.catering_dessert_triangle_qty or 0.0,
                 sweet_tea_qty=order.catering_sweet_tea_qty or 0.0,
+                unsweet_tea_qty=order.catering_unsweet_tea_qty or 0.0,
                 guest_count=order.catering_guest_count or 0,
             )
             enriched = enrich_lines(

@@ -194,7 +194,10 @@ ITEM_PLACEMENT = {
     "dressing_lb": ("food", "extras"),
     # food / DESSERTS + DRINKS
     "cookie": ("food", "desserts"),
+    "baklava": ("food", "desserts"),
+    "dessert_triangle": ("food", "desserts"),
     "sweet_tea": ("food", "drinks"),
+    "unsweet_tea": ("food", "drinks"),
     # driver
     "ice": ("driver", "drinks"),
     "plate": ("driver", "paper_goods"),
@@ -233,11 +236,11 @@ def place_line(item_code):
 def enrich_lines(lines, needs_ice=True, include_opt_in=None):
     """Attach sheet_type/category, rename labels, drop ice if not needed.
 
-    Cookies / sweet tea / dessert plates are order opt-in only. Any leftover
+    Desserts / gallon teas / dessert plates are order opt-in only. Any leftover
     package-rule lines for those codes are stripped unless injected via
     include_opt_in.
     """
-    opt_in_codes = {"cookie", "sweet_tea", "dessert_plate"}
+    opt_in_codes = {"cookie", "baklava", "dessert_triangle", "sweet_tea", "unsweet_tea", "dessert_plate"}
     out = []
     for line in lines:
         code = line.get("item_code") or ""
@@ -368,52 +371,65 @@ SHARED_EXTRAS_RULES = [
 ]
 
 
-def build_opt_in_extras(dessert="none", cookie_qty=0.0, sweet_tea=False, sweet_tea_qty=0.0, guest_count=0):
-    """Optional dessert/tea lines. Default none/off. Dessert plates only if dessert selected."""
+def build_opt_in_extras(
+    cookie_qty=0.0,
+    baklava_qty=0.0,
+    dessert_triangle_qty=0.0,
+    sweet_tea_qty=0.0,
+    unsweet_tea_qty=0.0,
+    guest_count=0,
+):
+    """Optional dessert/tea lines. Qty > 0 means on the ticket; multiple allowed. Plates if any dessert."""
     lines = []
     seq = 200
-    if dessert == "cookie":
-        cq = float(cookie_qty or 0.0)
-        if cq <= 0:
-            cq = float(guest_count or 0.0)
-        if cq > 0:
+    desserts = [
+        ("cookie", "Chocolate chip cookie", "each", float(cookie_qty or 0.0)),
+        ("baklava", "Baklava", "each", float(baklava_qty or 0.0)),
+        ("dessert_triangle", "Assorted Dessert Triangles", "each", float(dessert_triangle_qty or 0.0)),
+    ]
+    any_dessert = False
+    for code, name, uom, qty in desserts:
+        if qty > 0:
+            any_dessert = True
             lines.append(
                 {
                     "sequence": seq,
-                    "name": "Chocolate chip cookie",
-                    "item_code": "cookie",
-                    "quantity": cq,
+                    "name": name,
+                    "item_code": code,
+                    "quantity": qty,
+                    "uom_name": uom,
+                }
+            )
+            seq += 10
+    if any_dessert:
+        g = float(guest_count or 0.0)
+        if g > 0:
+            lines.append(
+                {
+                    "sequence": seq,
+                    "name": "Dessert plates",
+                    "item_code": "dessert_plate",
+                    "quantity": g,
                     "uom_name": "each",
                 }
             )
             seq += 10
-            # dessert plates follow guest count when a dessert is on
-            g = float(guest_count or 0.0)
-            if g > 0:
-                lines.append(
-                    {
-                        "sequence": seq,
-                        "name": "Dessert plates",
-                        "item_code": "dessert_plate",
-                        "quantity": g,
-                        "uom_name": "each",
-                    }
-                )
-                seq += 10
-    if sweet_tea:
-        tq = float(sweet_tea_qty or 0.0)
-        if tq <= 0:
-            tq = 0.08 * float(guest_count or 0.0)
-        if tq > 0:
+    teas = [
+        ("sweet_tea", "Sweet tea", float(sweet_tea_qty or 0.0)),
+        ("unsweet_tea", "Unsweet tea", float(unsweet_tea_qty or 0.0)),
+    ]
+    for code, name, qty in teas:
+        if qty > 0:
             lines.append(
                 {
                     "sequence": seq,
-                    "name": "Sweet tea",
-                    "item_code": "sweet_tea",
-                    "quantity": tq,
+                    "name": name,
+                    "item_code": code,
+                    "quantity": qty,
                     "uom_name": "gallon",
                 }
             )
+            seq += 10
     return lines
 
 BUFFET_PREMIUM_RULES = [
