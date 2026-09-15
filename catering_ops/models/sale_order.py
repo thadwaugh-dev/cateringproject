@@ -1,4 +1,5 @@
 from odoo import api, fields, models
+from odoo.exceptions import UserError
 
 from ..qty_engine import build_opt_in_extras, compute_prep_lines, enrich_lines, lines_for_sheet
 
@@ -19,6 +20,7 @@ CATERING_WRITE_FIELDS = {
     "catering_needs_ice",
     "catering_cookie_qty",
     "catering_baklava_qty",
+    "catering_mini_baklava_qty",
     "catering_dessert_triangle_qty",
     "catering_sweet_tea_qty",
     "catering_unsweet_tea_qty",
@@ -55,6 +57,7 @@ class SaleOrder(models.Model):
     catering_sweet_tea = fields.Boolean(string="Sweet tea (legacy)", default=False)
     catering_cookie_qty = fields.Float(string="Chocolate chip cookie", default=0.0)
     catering_baklava_qty = fields.Float(string="Baklava", default=0.0)
+    catering_mini_baklava_qty = fields.Float(string="Mini baklava", default=0.0)
     catering_dessert_triangle_qty = fields.Float(string="Assorted Dessert Triangles", default=0.0)
     catering_sweet_tea_qty = fields.Float(string="Sweet tea (gal)", default=0.0)
     catering_unsweet_tea_qty = fields.Float(string="Unsweet tea (gal)", default=0.0)
@@ -97,14 +100,73 @@ class SaleOrder(models.Model):
 
 
 
-    @api.onchange("catering_hummus", "catering_guest_count")
+    def _platter_guest_total(self):
+        self.ensure_one()
+        return (
+            (self.catering_chicken_count or 0)
+            + (self.catering_gyro_count or 0)
+            + (self.catering_falafel_count or 0)
+            + (self.catering_steak_count or 0)
+            + (self.catering_salmon_count or 0)
+            + (self.catering_lamb_count or 0)
+        )
+
+    def _check_platter_matches_guests(self):
+        """Raise if main platter counts do not equal guest count."""
+        for order in self:
+            guests = order.catering_guest_count or 0
+            if not order.catering_package_type_id or guests <= 0:
+                continue
+            total = order._platter_guest_total()
+            if total != guests:
+                raise UserError(
+                    "Platter guest counts must equal Guest count. "
+                    "Guest count is %s but chicken + gyro + falafel + steak + salmon + lamb = %s."
+                    % (guests, total)
+                )
+
+    @api.onchange(
+        "catering_guest_count",
+        "catering_chicken_count",
+        "catering_gyro_count",
+        "catering_falafel_count",
+        "catering_steak_count",
+        "catering_salmon_count",
+        "catering_lamb_count",
+        "catering_package_type_id",
+    )
+    def _onchange_platter_guest_balance(self):
+        for order in self:
+            guests = order.catering_guest_count or 0
+            if not order.catering_package_type_id or guests <= 0:
+                continue
+            total = order._platter_guest_total()
+            if total != guests:
+                return {
+                    "warning": {
+                        "title": "Platter count mismatch",
+                        "message": (
+                            "Guest count is %s but platter inputs total %s. "
+                            "They must match before Compute Prep Sheet."
+                            % (guests, total)
+                        ),
+                    }
+                }
+
+    @api.onchange("catering_hummus")
     def _onchange_catering_hummus(self):
         for order in self:
             if order.catering_hummus:
-                if not order.catering_hummus_qty:
-                    order.catering_hummus_qty = order.catering_guest_count or 0
+                # Default to guest count when turning on; field stays editable after.
+                order.catering_hummus_qty = order.catering_guest_count or 0
             else:
                 order.catering_hummus_qty = 0
+
+    @api.onchange("catering_guest_count")
+    def _onchange_guest_count_hummus_default(self):
+        for order in self:
+            if order.catering_hummus and not order.catering_hummus_qty:
+                order.catering_hummus_qty = order.catering_guest_count or 0
 
     @api.model_create_multi
     def create(self, vals_list):
@@ -167,6 +229,7 @@ class SaleOrder(models.Model):
         return existing
 
     def action_compute_catering_prep(self):
+        self._check_platter_matches_guests()
         PrepLine = self.env["catering.prep.sheet.line"]
         for order in self:
             pkg = order.catering_package_type_id
@@ -225,6 +288,7 @@ class SaleOrder(models.Model):
             strip_codes = (
                 "cookie",
                 "baklava",
+                "mini_baklava",
                 "dessert_triangle",
                 "sweet_tea",
                 "unsweet_tea",
@@ -234,6 +298,7 @@ class SaleOrder(models.Model):
             opt_in = build_opt_in_extras(
                 cookie_qty=order.catering_cookie_qty or 0.0,
                 baklava_qty=order.catering_baklava_qty or 0.0,
+                mini_baklava_qty=order.catering_mini_baklava_qty or 0.0,
                 dessert_triangle_qty=order.catering_dessert_triangle_qty or 0.0,
                 sweet_tea_qty=order.catering_sweet_tea_qty or 0.0,
                 unsweet_tea_qty=order.catering_unsweet_tea_qty or 0.0,

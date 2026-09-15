@@ -216,6 +216,7 @@ ITEM_PLACEMENT = {
     # food / DESSERTS + DRINKS
     "cookie": ("food", "desserts"),
     "baklava": ("food", "desserts"),
+    "mini_baklava": ("food", "desserts"),
     "dessert_triangle": ("food", "desserts"),
     "sweet_tea": ("food", "drinks"),
     "unsweet_tea": ("food", "drinks"),
@@ -261,7 +262,7 @@ def enrich_lines(lines, needs_ice=True, include_opt_in=None):
     package-rule lines for those codes are stripped unless injected via
     include_opt_in.
     """
-    opt_in_codes = {"cookie", "baklava", "dessert_triangle", "sweet_tea", "unsweet_tea", "dessert_plate"}
+    opt_in_codes = {"cookie", "baklava", "mini_baklava", "dessert_triangle", "sweet_tea", "unsweet_tea", "dessert_plate"}
     out = []
     for line in lines:
         code = line.get("item_code") or ""
@@ -395,6 +396,7 @@ SHARED_EXTRAS_RULES = [
 def build_opt_in_extras(
     cookie_qty=0.0,
     baklava_qty=0.0,
+    mini_baklava_qty=0.0,
     dessert_triangle_qty=0.0,
     sweet_tea_qty=0.0,
     unsweet_tea_qty=0.0,
@@ -406,6 +408,7 @@ def build_opt_in_extras(
     desserts = [
         ("cookie", "Chocolate chip cookie", "each", float(cookie_qty or 0.0)),
         ("baklava", "Baklava", "each", float(baklava_qty or 0.0)),
+        ("mini_baklava", "Mini baklava", "each", float(mini_baklava_qty or 0.0)),
         ("dessert_triangle", "Assorted Dessert Triangles", "each", float(dessert_triangle_qty or 0.0)),
     ]
     any_dessert = False

@@ -13,7 +13,6 @@
                             <field name="catering_guest_count"/>
                             <field name="catering_hummus"/>
                             <field name="catering_hummus_qty" invisible="not catering_hummus"/>
-                            <field name="catering_needs_ice"/>
                             <field name="catering_pita_cut_style"/>
                             <field name="catering_pita_grilled" invisible="catering_pita_cut_style != 'split'"/>
                             <field name="catering_pita_fried" invisible="catering_pita_cut_style != 'split'"/>
@@ -30,11 +29,13 @@
                     <group string="Desserts (qty 0 = off; multiple allowed)">
                         <field name="catering_cookie_qty"/>
                         <field name="catering_baklava_qty"/>
+                        <field name="catering_mini_baklava_qty"/>
                         <field name="catering_dessert_triangle_qty"/>
                     </group>
                     <group string="Gallon tea (qty 0 = off; multiple allowed)">
                         <field name="catering_sweet_tea_qty"/>
                         <field name="catering_unsweet_tea_qty"/>
+                        <field name="catering_needs_ice"/>
                     </group>
                     <group>
                         <button name="action_compute_catering_prep" type="object" string="Compute Prep Sheet" class="btn-primary"/>

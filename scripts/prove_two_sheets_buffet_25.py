@@ -34,7 +34,7 @@ def run(**opt):
 
 def main():
     f, d = run()
-    for code in ("cookie", "baklava", "dessert_triangle", "sweet_tea", "unsweet_tea"):
+    for code in ("cookie", "baklava", "mini_baklava", "dessert_triangle", "sweet_tea", "unsweet_tea"):
         assert code not in f, code
     assert "dessert_plate" not in d
     assert abs(f["pita_grilled"] - 7.8125) < 1e-9
@@ -44,12 +44,14 @@ def main():
     f2, d2 = run(
         cookie_qty=25,
         baklava_qty=10,
+        mini_baklava_qty=12,
         dessert_triangle_qty=5,
         sweet_tea_qty=2.0,
         unsweet_tea_qty=1.0,
     )
     assert abs(f2["cookie"] - 25) < 1e-9
     assert abs(f2["baklava"] - 10) < 1e-9
+    assert abs(f2["mini_baklava"] - 12) < 1e-9
     assert abs(f2["dessert_triangle"] - 5) < 1e-9
     assert abs(f2["sweet_tea"] - 2.0) < 1e-9
     assert abs(f2["unsweet_tea"] - 1.0) < 1e-9
