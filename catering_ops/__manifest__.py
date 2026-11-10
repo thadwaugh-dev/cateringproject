@@ -1,7 +1,7 @@
 {
     "name": "Catering Ops",
     "summary": "Kitchen sheets plus customer and venue lookup for Little Greek catering",
-    "version": "18.0.1.6.0",
+    "version": "18.0.1.6.1",
     "category": "Sales",
     "author": "Little Greek",
     "license": "LGPL-3",
