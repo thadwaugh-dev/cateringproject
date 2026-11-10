@@ -32,7 +32,8 @@
         <field name="model">res.partner</field>
         <field name="inherit_id" ref="base.view_res_partner_filter"/>
         <field name="arch" type="xml">
-            <field name="phone" position="after">
+            <!-- name stays on the base search view. sms (auto-installed) replaces the phone search field. -->
+            <field name="name" position="after">
                 <field name="street"/>
                 <field name="city"/>
                 <field name="state_id"/>

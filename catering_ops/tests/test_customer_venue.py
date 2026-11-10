@@ -202,9 +202,12 @@ class TestCateringCustomerVenue(TransactionCase):
         self.assertIn("sale_order_ids", partner_form)
         self.assertIn("catering_venue_id", partner_form)
         partner_search = arch("res.partner", "base.view_res_partner_filter", "search")
-        for token in ("name", "phone", "city", "street", "zip", "catering_preferred_venue_ids"):
+        for token in ("name", "city", "street", "zip", "catering_preferred_venue_ids"):
             self.assertIn(token, partner_search)
         self.assertIn('name="catering_customer"', partner_search)
+        inherit_arch = self.env.ref("catering_ops.view_res_partner_filter_catering_ops").arch
+        self.assertIn('name="name"', inherit_arch)
+        self.assertNotIn('name="phone"', inherit_arch)
 
         access = self.env.ref("catering_ops.access_catering_venue_user")
         self.assertTrue(access.perm_read and access.perm_write and access.perm_create)
