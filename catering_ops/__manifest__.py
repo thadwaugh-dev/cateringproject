@@ -1,7 +1,7 @@
 {
     "name": "Catering Ops",
-    "summary": "Kitchen pull/prep sheets for Little Greek catering",
-    "version": "18.0.1.5.6",
+    "summary": "Kitchen sheets plus customer and venue lookup for Little Greek catering",
+    "version": "18.0.1.6.0",
     "category": "Sales",
     "author": "Little Greek",
     "license": "LGPL-3",
@@ -12,6 +12,8 @@
         "views/main_option_views.xml",
         "views/package_rule_views.xml",
         "views/prep_sheet_views.xml",
+        "views/venue_views.xml",
+        "views/res_partner_views.xml",
         "views/sale_order_views.xml",
         "data/initial_rules.xml",
         "data/kitchen_display.xml",

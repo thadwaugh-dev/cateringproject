@@ -5,6 +5,10 @@
         <field name="model">sale.order</field>
         <field name="inherit_id" ref="sale.view_order_form"/>
         <field name="arch" type="xml">
+            <xpath expr="//group[@name='partner_details']/field[@name='partner_id']" position="after">
+                <field name="catering_venue_id" required="catering_package_type_id" placeholder="Delivery venue..."/>
+                <field name="catering_preferred_venue_ids" widget="many2many_tags" readonly="1" invisible="not catering_preferred_venue_ids"/>
+            </xpath>
             <xpath expr="//notebook" position="inside">
                 <page string="Catering" name="catering_ops">
                     <group>
@@ -70,4 +74,51 @@
             </xpath>
         </field>
     </record>
+
+    <record id="view_sale_order_tree_catering_venue" model="ir.ui.view">
+        <field name="name">sale.order.list.catering.venue</field>
+        <field name="model">sale.order</field>
+        <field name="inherit_id" ref="sale.sale_order_tree"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='partner_id']" position="after">
+                <field name="catering_venue_id" optional="show"/>
+            </xpath>
+        </field>
+    </record>
+
+    <record id="view_sales_order_filter_catering_venue" model="ir.ui.view">
+        <field name="name">sale.order.search.catering.venue</field>
+        <field name="model">sale.order</field>
+        <field name="inherit_id" ref="sale.view_sales_order_filter"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='partner_id']" position="after">
+                <field name="catering_venue_id" string="Venue"/>
+            </xpath>
+            <xpath expr="//filter[@name='customer']" position="after">
+                <filter string="Venue" name="group_catering_venue" context="{'group_by': 'catering_venue_id'}"/>
+            </xpath>
+        </field>
+    </record>
+
+    <record id="action_catering_orders" model="ir.actions.act_window">
+        <field name="name">Orders</field>
+        <field name="res_model">sale.order</field>
+        <field name="view_mode">list,form</field>
+        <field name="search_view_id" ref="sale.view_sales_order_filter"/>
+        <field name="context">{}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                Create an order
+            </p>
+            <p>
+                Search by customer or venue. A catering order (one with a package) needs both.
+            </p>
+        </field>
+    </record>
+
+    <menuitem id="menu_catering_orders"
+        name="Orders"
+        parent="menu_catering_ops_root"
+        action="action_catering_orders"
+        sequence="3"/>
 </odoo>

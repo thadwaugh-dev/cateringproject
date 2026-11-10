@@ -1,5 +1,5 @@
 from odoo import api, fields, models
-from odoo.exceptions import UserError
+from odoo.exceptions import UserError, ValidationError
 
 from ..qty_engine import build_opt_in_extras, compute_prep_lines, enrich_lines, lines_for_sheet
 
@@ -31,6 +31,19 @@ class SaleOrder(models.Model):
     _inherit = "sale.order"
 
     catering_package_type_id = fields.Many2one("catering.package.type", string="Package")
+    catering_venue_id = fields.Many2one(
+        "catering.venue",
+        string="Venue",
+        index=True,
+        tracking=True,
+        help="Delivery destination. Choose any venue. Preferred venues on the customer are a shortcut, not a limit.",
+    )
+    catering_preferred_venue_ids = fields.Many2many(
+        related="partner_id.catering_preferred_venue_ids",
+        string="Preferred venues",
+        readonly=True,
+        groups="sales_team.group_sale_salesman",
+    )
     catering_guest_count = fields.Integer(string="Guest count")
     catering_chicken_count = fields.Integer(string="Chicken guests")
     catering_gyro_count = fields.Integer(string="Gyro guests")
@@ -112,6 +125,23 @@ class SaleOrder(models.Model):
         string="Prep quantities",
         readonly=False,
     )
+
+    @api.constrains("catering_package_type_id", "partner_id", "catering_venue_id")
+    def _check_catering_customer_and_venue(self):
+        """Catering orders are the ones that use a package. Those need a customer and a venue."""
+        for order in self:
+            if not order.catering_package_type_id:
+                continue
+            missing = []
+            if not order.partner_id:
+                missing.append("customer")
+            if not order.catering_venue_id:
+                missing.append("venue")
+            if missing:
+                raise ValidationError(
+                    "A catering order needs a %s before it can be saved."
+                    % " and a ".join(missing)
+                )
 
     @api.depends(
         "catering_guest_count",
