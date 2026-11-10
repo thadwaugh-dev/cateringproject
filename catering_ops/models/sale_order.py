@@ -36,7 +36,8 @@ class SaleOrder(models.Model):
         string="Venue",
         index=True,
         tracking=True,
-        help="Delivery destination. Choose any venue. Preferred venues on the customer are a shortcut, not a limit.",
+        check_company=True,
+        help="Delivery destination. Choose any venue in this company. Preferred venues on the customer are a shortcut, not a limit.",
     )
     catering_preferred_venue_ids = fields.Many2many(
         related="partner_id.catering_preferred_venue_ids",

@@ -12,6 +12,7 @@
                 <field name="state_id"/>
                 <field name="zip"/>
                 <field name="phone"/>
+                <field name="company_id" groups="base.group_multi_company" optional="show"/>
                 <field name="order_count"/>
             </list>
         </field>
@@ -46,6 +47,7 @@
                             <field name="state_id" options="{'no_open': True, 'no_create': True}"/>
                             <field name="zip"/>
                             <field name="country_id" options="{'no_open': True, 'no_create': True}"/>
+                            <field name="company_id" groups="base.group_multi_company"/>
                         </group>
                     </group>
                     <group string="Notes">
@@ -83,10 +85,12 @@
                 <field name="zip"/>
                 <field name="phone"/>
                 <field name="notes"/>
+                <field name="company_id" groups="base.group_multi_company"/>
                 <filter string="Archived" name="inactive" domain="[('active', '=', False)]"/>
                 <group expand="0" string="Group By">
                     <filter string="City" name="group_city" context="{'group_by': 'city'}"/>
                     <filter string="State" name="group_state" context="{'group_by': 'state_id'}"/>
+                    <filter string="Company" name="group_company" groups="base.group_multi_company" context="{'group_by': 'company_id'}"/>
                 </group>
             </search>
         </field>

@@ -11,5 +11,6 @@ class ResPartner(models.Model):
         "venue_id",
         string="Preferred venues",
         groups="sales_team.group_sale_salesman",
-        help="Venues this customer often uses. An order can still deliver to any venue.",
+        check_company=True,
+        help="Venues this customer often uses. An order can still deliver to any venue in the same company.",
     )
