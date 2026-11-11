@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_partner_form_catering_ops" model="ir.ui.view">
+        <field name="name">res.partner.form.catering.ops</field>
+        <field name="model">res.partner</field>
+        <field name="inherit_id" ref="base.view_partner_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//page[@name='sales_purchases']" position="after">
+                <page string="Catering" name="catering_ops" groups="sales_team.group_sale_salesman">
+                    <group string="Preferred venues">
+                        <field name="catering_preferred_venue_ids" widget="many2many_tags" nolabel="1" placeholder="Add a venue from the venue list"/>
+                    </group>
+                    <separator string="Orders"/>
+                    <field name="sale_order_ids" readonly="1">
+                        <list create="false" delete="false" edit="false">
+                            <field name="name"/>
+                            <field name="date_order"/>
+                            <field name="catering_venue_id"/>
+                            <field name="catering_package_type_id"/>
+                            <field name="state" widget="badge"/>
+                            <field name="amount_total" widget="monetary"/>
+                            <field name="currency_id" column_invisible="1"/>
+                        </list>
+                    </field>
+                </page>
+            </xpath>
+        </field>
+    </record>
+
+    <record id="view_res_partner_filter_catering_ops" model="ir.ui.view">
+        <field name="name">res.partner.search.catering.ops</field>
+        <field name="model">res.partner</field>
+        <field name="inherit_id" ref="base.view_res_partner_filter"/>
+        <field name="arch" type="xml">
+            <!-- name stays on the base search view. sms (auto-installed) replaces the phone search field. -->
+            <field name="name" position="after">
+                <field name="street"/>
+                <field name="city"/>
+                <field name="state_id"/>
+                <field name="zip"/>
+                <field name="catering_preferred_venue_ids"/>
+            </field>
+            <filter name="type_person" position="before">
+                <filter string="Customers" name="catering_customer" domain="[('customer_rank', '&gt;', 0)]"/>
+                <separator/>
+            </filter>
+        </field>
+    </record>
+
+    <record id="action_catering_customers" model="ir.actions.act_window">
+        <field name="name">Customers</field>
+        <field name="res_model">res.partner</field>
+        <field name="view_mode">list,form</field>
+        <field name="search_view_id" ref="base.view_res_partner_filter"/>
+        <field name="context">{'search_default_catering_customer': 1, 'res_partner_search_mode': 'customer', 'default_customer_rank': 1}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                Add the person or company who places the order
+            </p>
+            <p>
+                Search by name, phone, email, street, city, or ZIP. Open a customer to see their orders and preferred venues.
+            </p>
+        </field>
+    </record>
+
+    <menuitem id="menu_catering_customers"
+        name="Customers"
+        parent="menu_catering_ops_root"
+        action="action_catering_customers"
+        sequence="1"/>
+</odoo>

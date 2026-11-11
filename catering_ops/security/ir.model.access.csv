@@ -9,3 +9,10 @@ access_catering_prep_sheet_user,catering.prep.sheet.user,model_catering_prep_she
 access_catering_prep_sheet_manager,catering.prep.sheet.manager,model_catering_prep_sheet,sales_team.group_sale_manager,1,1,1,1
 access_catering_prep_sheet_line_user,catering.prep.sheet.line.user,model_catering_prep_sheet_line,sales_team.group_sale_salesman,1,1,1,1
 access_catering_prep_sheet_line_manager,catering.prep.sheet.line.manager,model_catering_prep_sheet_line,sales_team.group_sale_manager,1,1,1,1
+access_catering_venue_internal,catering.venue.internal,model_catering_venue,base.group_user,1,0,0,0
+access_catering_venue_user,catering.venue.user,model_catering_venue,sales_team.group_sale_salesman,1,1,1,0
+access_catering_venue_manager,catering.venue.manager,model_catering_venue,sales_team.group_sale_manager,1,1,1,1
+access_catering_payment_user,catering.payment.user,model_catering_payment,sales_team.group_sale_salesman,1,1,1,0
+access_catering_payment_manager,catering.payment.manager,model_catering_payment,sales_team.group_sale_manager,1,1,1,1
+access_catering_partner_card_user,catering.partner.card.user,model_catering_partner_card,sales_team.group_sale_salesman,1,1,1,0
+access_catering_partner_card_manager,catering.partner.card.manager,model_catering_partner_card,sales_team.group_sale_manager,1,1,1,1

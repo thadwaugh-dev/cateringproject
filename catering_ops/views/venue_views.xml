@@ -1,0 +1,120 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_catering_venue_list" model="ir.ui.view">
+        <field name="name">catering.venue.list</field>
+        <field name="model">catering.venue</field>
+        <field name="arch" type="xml">
+            <list>
+                <field name="name"/>
+                <field name="contact_name"/>
+                <field name="street" optional="hide"/>
+                <field name="city"/>
+                <field name="state_id"/>
+                <field name="zip"/>
+                <field name="phone"/>
+                <field name="company_id" groups="base.group_multi_company" optional="show"/>
+                <field name="order_count"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_catering_venue_form" model="ir.ui.view">
+        <field name="name">catering.venue.form</field>
+        <field name="model">catering.venue</field>
+        <field name="arch" type="xml">
+            <form>
+                <sheet>
+                    <widget name="web_ribbon" title="Archived" bg_color="text-bg-danger" invisible="active"/>
+                    <div class="oe_button_box" name="button_box">
+                        <button name="action_view_orders" type="object" class="oe_stat_button" icon="fa-shopping-cart">
+                            <field name="order_count" widget="statinfo" string="Orders"/>
+                        </button>
+                    </div>
+                    <div class="oe_title">
+                        <h1>
+                            <field name="name" placeholder="Venue name"/>
+                        </h1>
+                    </div>
+                    <group>
+                        <group>
+                            <field name="active" invisible="1"/>
+                            <field name="contact_name"/>
+                            <field name="phone" widget="phone"/>
+                            <field name="street"/>
+                            <field name="city"/>
+                        </group>
+                        <group>
+                            <field name="state_id" options="{'no_open': True, 'no_create': True}"/>
+                            <field name="zip"/>
+                            <field name="country_id" options="{'no_open': True, 'no_create': True}"/>
+                            <field name="company_id" groups="base.group_multi_company"/>
+                        </group>
+                    </group>
+                    <group string="Notes">
+                        <field name="notes" nolabel="1" placeholder="Notes about this venue"/>
+                    </group>
+                    <group string="Preferred by">
+                        <field name="partner_ids" widget="many2many_tags" nolabel="1" placeholder="Customers who prefer this venue"/>
+                    </group>
+                    <separator string="Orders"/>
+                    <field name="order_ids" readonly="1">
+                        <list create="false" delete="false" edit="false">
+                            <field name="name"/>
+                            <field name="partner_id"/>
+                            <field name="date_order"/>
+                            <field name="catering_package_type_id"/>
+                            <field name="state" widget="badge"/>
+                        </list>
+                    </field>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_catering_venue_search" model="ir.ui.view">
+        <field name="name">catering.venue.search</field>
+        <field name="model">catering.venue</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="name" string="Venue"
+                    filter_domain="['|', '|', '|', '|', '|', '|', ('name', 'ilike', self), ('contact_name', 'ilike', self), ('street', 'ilike', self), ('city', 'ilike', self), ('zip', 'ilike', self), ('phone', 'ilike', self), ('notes', 'ilike', self)]"/>
+                <field name="contact_name"/>
+                <field name="street"/>
+                <field name="city"/>
+                <field name="state_id"/>
+                <field name="zip"/>
+                <field name="phone"/>
+                <field name="notes"/>
+                <field name="company_id" groups="base.group_multi_company"/>
+                <filter string="Archived" name="inactive" domain="[('active', '=', False)]"/>
+                <group expand="0" string="Group By">
+                    <filter string="City" name="group_city" context="{'group_by': 'city'}"/>
+                    <filter string="State" name="group_state" context="{'group_by': 'state_id'}"/>
+                    <filter string="Company" name="group_company" groups="base.group_multi_company" context="{'group_by': 'company_id'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_catering_venue" model="ir.actions.act_window">
+        <field name="name">Venues</field>
+        <field name="res_model">catering.venue</field>
+        <field name="view_mode">list,form</field>
+        <field name="search_view_id" ref="view_catering_venue_search"/>
+        <field name="context">{}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                Add a delivery venue
+            </p>
+            <p>
+                A venue is the place an order is delivered. The same venue can be used by more than one customer.
+            </p>
+        </field>
+    </record>
+
+    <menuitem id="menu_catering_venues"
+        name="Venues"
+        parent="menu_catering_ops_root"
+        action="action_catering_venue"
+        sequence="2"/>
+</odoo>

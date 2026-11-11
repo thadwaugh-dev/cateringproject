@@ -5,8 +5,24 @@
         <field name="model">sale.order</field>
         <field name="inherit_id" ref="sale.view_order_form"/>
         <field name="arch" type="xml">
+            <xpath expr="//header" position="inside">
+                <button name="action_catering_stripe_charge" type="object" string="Charge" class="btn-primary"
+                    invisible="not catering_package_type_id or catering_paid"/>
+            </xpath>
+            <xpath expr="//group[@name='partner_details']/field[@name='partner_id']" position="after">
+                <field name="catering_venue_id" required="catering_package_type_id" placeholder="Delivery venue..."/>
+                <field name="catering_preferred_venue_ids" widget="many2many_tags" readonly="1" invisible="not catering_preferred_venue_ids"/>
+            </xpath>
             <xpath expr="//notebook" position="inside">
                 <page string="Catering" name="catering_ops">
+                    <group string="Payment">
+                        <field name="catering_paid" readonly="1"/>
+                        <field name="catering_card_brand" readonly="1"/>
+                        <field name="catering_card_last4" readonly="1"/>
+                    </group>
+                    <div class="alert alert-danger" role="alert" invisible="not catering_payment_error">
+                        <field name="catering_payment_error" readonly="1"/>
+                    </div>
                     <group>
                         <group>
                             <field name="catering_package_type_id"/>
@@ -44,6 +60,19 @@
                         <button name="action_open_food_sheet" type="object" string="Open Food Sheet" class="btn-secondary"/>
                         <button name="action_open_driver_sheet" type="object" string="Open Driver Pull Sheet" class="btn-secondary"/>
                     </group>
+                    <separator string="Card payments"/>
+                    <field name="catering_payment_ids" readonly="1">
+                        <list create="false" delete="false" edit="false">
+                            <field name="payment_date"/>
+                            <field name="amount"/>
+                            <field name="currency_id" column_invisible="1"/>
+                            <field name="status"/>
+                            <field name="brand"/>
+                            <field name="last4"/>
+                            <field name="stripe_payment_intent_id"/>
+                            <field name="error_message"/>
+                        </list>
+                    </field>
                     <separator string="Food Sheet (preview)"/>
                     <field name="catering_food_line_ids">
                         <list editable="bottom">
@@ -70,4 +99,51 @@
             </xpath>
         </field>
     </record>
+
+    <record id="view_sale_order_tree_catering_venue" model="ir.ui.view">
+        <field name="name">sale.order.list.catering.venue</field>
+        <field name="model">sale.order</field>
+        <field name="inherit_id" ref="sale.sale_order_tree"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='partner_id']" position="after">
+                <field name="catering_venue_id" optional="show"/>
+            </xpath>
+        </field>
+    </record>
+
+    <record id="view_sales_order_filter_catering_venue" model="ir.ui.view">
+        <field name="name">sale.order.search.catering.venue</field>
+        <field name="model">sale.order</field>
+        <field name="inherit_id" ref="sale.view_sales_order_filter"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='partner_id']" position="after">
+                <field name="catering_venue_id" string="Venue"/>
+            </xpath>
+            <xpath expr="//filter[@name='customer']" position="after">
+                <filter string="Venue" name="group_catering_venue" context="{'group_by': 'catering_venue_id'}"/>
+            </xpath>
+        </field>
+    </record>
+
+    <record id="action_catering_orders" model="ir.actions.act_window">
+        <field name="name">Orders</field>
+        <field name="res_model">sale.order</field>
+        <field name="view_mode">list,form</field>
+        <field name="search_view_id" ref="sale.view_sales_order_filter"/>
+        <field name="context">{}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                Create an order
+            </p>
+            <p>
+                Search by customer or venue. A catering order (one with a package) needs both.
+            </p>
+        </field>
+    </record>
+
+    <menuitem id="menu_catering_orders"
+        name="Orders"
+        parent="menu_catering_ops_root"
+        action="action_catering_orders"
+        sequence="3"/>
 </odoo>

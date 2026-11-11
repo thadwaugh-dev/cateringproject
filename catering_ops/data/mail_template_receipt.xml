@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="mail_template_catering_receipt" model="mail.template">
+        <field name="name">Little Greek catering receipt</field>
+        <field name="model_id" ref="sale.model_sale_order"/>
+        <field name="subject">Little Greek receipt {{ object.name }}</field>
+        <field name="email_from">{{ object.company_id.email_formatted or user.email_formatted or 'receipts@littlegreek.local' }}</field>
+        <field name="partner_to">{{ object.partner_id.id }}</field>
+        <field name="description">Plain receipt sent after a catering card charge</field>
+        <field name="auto_delete" eval="False"/>
+        <field name="body_html" type="html">
+<div>
+    <p><strong>Little Greek</strong></p>
+    <p>Receipt</p>
+    <p>Order: <t t-out="object.name or ''"/></p>
+    <p>Date: <t t-out="object._catering_receipt_when()"/></p>
+    <p>Package: <t t-out="object.catering_package_type_id.name or ''"/></p>
+    <p>Guest count: <t t-out="object.catering_guest_count or 0"/></p>
+    <p>Total: <t t-out="object._catering_receipt_total()"/></p>
+    <p>Card: <t t-out="object._catering_receipt_card()"/></p>
+    <p>Company: <t t-out="object.company_id.name or ''"/></p>
+</div>
+        </field>
+    </record>
+</odoo>

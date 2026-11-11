@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="catering_venue_company_rule" model="ir.rule">
+        <field name="name">Catering venue multi-company</field>
+        <field name="model_id" ref="model_catering_venue"/>
+        <field name="domain_force">[('company_id', 'in', company_ids)]</field>
+    </record>
+    <record id="catering_payment_company_rule" model="ir.rule">
+        <field name="name">Catering payment multi-company</field>
+        <field name="model_id" ref="model_catering_payment"/>
+        <field name="domain_force">[('company_id', 'in', company_ids)]</field>
+    </record>
+    <record id="catering_partner_card_company_rule" model="ir.rule">
+        <field name="name">Catering saved card multi-company</field>
+        <field name="model_id" ref="model_catering_partner_card"/>
+        <field name="domain_force">[('company_id', 'in', company_ids)]</field>
+    </record>
+</odoo>
