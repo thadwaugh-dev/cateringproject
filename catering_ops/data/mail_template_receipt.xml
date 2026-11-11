@@ -13,11 +13,11 @@
     <p><strong>Little Greek</strong></p>
     <p>Receipt</p>
     <p>Order: <t t-out="object.name or ''"/></p>
-    <p>Date: <t t-out="object.date_order or ''"/></p>
+    <p>Date: <t t-out="object._catering_receipt_when()"/></p>
     <p>Package: <t t-out="object.catering_package_type_id.name or ''"/></p>
     <p>Guest count: <t t-out="object.catering_guest_count or 0"/></p>
     <p>Total: <t t-out="object._catering_receipt_total()"/></p>
-    <p>Card: <t t-out="object._catering_paid_payment().brand or ''"/> ending <t t-out="object._catering_paid_payment().last4 or ''"/></p>
+    <p>Card: <t t-out="object._catering_receipt_card()"/></p>
     <p>Company: <t t-out="object.company_id.name or ''"/></p>
 </div>
         </field>

@@ -133,12 +133,12 @@ class TestStripeCharge(TransactionCase):
         self.assertFalse(order.catering_payment_error)
         payment = order._catering_paid_payment()
         self.assertEqual(payment.status, "paid")
-        self.assertEqual(payment.brand, "visa")
+        self.assertEqual(payment.brand, "Visa")
         self.assertEqual(payment.last4, "4242")
         self.assertEqual(payment.stripe_payment_intent_id, "pi_test_success")
         self.assertEqual(payment.company_id, company)
         self.assertEqual(payment.amount, order.amount_total)
-        self.assertEqual(order.catering_card_brand, "visa")
+        self.assertEqual(order.catering_card_brand, "Visa")
         self.assertEqual(order.catering_card_last4, "4242")
         mail = self.env["mail.mail"].search(
             [("model", "=", "sale.order"), ("res_id", "=", order.id)]
@@ -191,7 +191,7 @@ class TestStripeCharge(TransactionCase):
         calls = []
 
         def fake_request(method, url, data=None, params=None, headers=None, timeout=None):
-            calls.append(url)
+            calls.append({"url": url, "data": data or {}})
             if url.endswith("/v1/payment_intents"):
                 return FakeResponse(
                     402,
@@ -220,21 +220,45 @@ class TestStripeCharge(TransactionCase):
         self.assertEqual(action["type"], "ir.actions.act_url")
         self.assertTrue(action["url"].startswith("https://checkout.stripe.com/"))
         self.assertEqual(len(calls), 2)
+        self.assertEqual(calls[1]["data"].get("payment_method_types[0]"), "card")
 
-    def test_checkout_return_saves_token_and_marks_paid(self):
+    def test_checkout_return_fills_brand_last4_and_marks_paid(self):
         company = self._company("Fayetteville")
         order = self._order(company)
+        order.date_order = "2026-11-11 02:34:25"
+        self.env.user.tz = False
+        order.company_id.partner_id.tz = False
+        calls = []
         session = {
             "id": "cs_test_return",
             "payment_status": "paid",
             "customer": "cus_test_guest",
             "metadata": {"order_id": str(order.id), "company_id": str(company.id)},
-            "payment_intent": _intent(),
+            "payment_intent": "pi_test_success",
+        }
+        intent = {
+            "id": "pi_test_success",
+            "status": "succeeded",
+            "customer": "cus_test_guest",
+            "payment_method": "pm_test_card",
+        }
+        method = {
+            "id": "pm_test_card",
+            "type": "card",
+            "card": {"brand": "visa", "last4": "4242", "exp_month": 12, "exp_year": 2030},
         }
 
-        def fake_request(method, url, data=None, params=None, headers=None, timeout=None):
+        def fake_request(method_name, url, data=None, params=None, headers=None, timeout=None):
+            calls.append(url)
+            self.assertNotIn("/v1/charges", url)
             self.assertNotIn("4242424242424242", str(params))
-            return FakeResponse(200, session)
+            if "/checkout/sessions/" in url:
+                return FakeResponse(200, session)
+            if url.endswith("/v1/payment_intents/pi_test_success"):
+                return FakeResponse(200, intent)
+            if url.endswith("/v1/payment_methods/pm_test_card"):
+                return FakeResponse(200, method)
+            raise AssertionError(url)
 
         with patch(
             "odoo.addons.catering_ops.models.sale_order_charge.get_stripe_secret_key",
@@ -243,11 +267,33 @@ class TestStripeCharge(TransactionCase):
             order.action_catering_confirm_checkout("cs_test_return")
 
         self.assertTrue(order.catering_paid)
+        self.assertTrue(any(url.endswith("/v1/payment_methods/pm_test_card") for url in calls))
+        payment = order._catering_paid_payment()
+        self.assertEqual(payment.status, "paid")
+        self.assertEqual(payment.brand, "Visa")
+        self.assertEqual(payment.last4, "4242")
+        self.assertEqual(order.catering_card_brand, "Visa")
+        self.assertEqual(order.catering_card_last4, "4242")
         card = order._catering_saved_card()
         self.assertEqual(card.stripe_customer_id, "cus_test_guest")
         self.assertEqual(card.stripe_payment_method_id, "pm_test_card")
         self.assertEqual(card.company_id, company)
+        self.assertEqual(card.brand, "Visa")
         self.assertEqual(card.last4, "4242")
+        self.assertEqual(card.exp_month, 12)
+        self.assertEqual(card.exp_year, 2030)
+        self.assertEqual(order._catering_receipt_card(), "Visa ending 4242")
+        when = order._catering_receipt_when()
+        self.assertIn("Nov 10, 2026", when)
+        self.assertIn("8:34 PM", when)
+        self.assertNotIn("02:34:25", when)
+        mail = self.env["mail.mail"].search(
+            [("model", "=", "sale.order"), ("res_id", "=", order.id)]
+        )
+        body = mail.body_html or ""
+        self.assertIn("Visa ending 4242", body)
+        self.assertIn("Nov 10, 2026", body)
+        self.assertNotIn("4242424242424242", body)
         self.assertNotIn("4242424242424242", str(card.read()))
 
     def test_little_rock_without_a_key_is_not_charged_with_fayetteville(self):
@@ -261,7 +307,7 @@ class TestStripeCharge(TransactionCase):
             return default
 
         with patch("odoo.addons.catering_ops.stripe_api.config") as cfg, patch.dict(
-            os.environ,
+            "os.environ",
             {
                 "CATERING_STRIPE_SECRET_KEY_LITTLE_ROCK": "",
                 "CATERING_STRIPE_SECRET_KEY_FAYETTEVILLE": "",

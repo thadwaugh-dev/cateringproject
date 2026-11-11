@@ -85,7 +85,7 @@ class StripeClient:
         return self._request(
             "GET",
             "/v1/checkout/sessions/%s" % session_id,
-            params={"expand[]": "payment_intent.payment_method"},
+            expand=["payment_intent", "payment_intent.payment_method"],
         )
 
     def retrieve_payment_intent(self, intent_id):
@@ -93,26 +93,33 @@ class StripeClient:
         return self._request(
             "GET",
             "/v1/payment_intents/%s" % intent_id,
-            params={"expand[]": "payment_method"},
+            expand=["payment_method"],
         )
 
     def retrieve_payment_method(self, method_id):
         _check_id(method_id, "pm_")
         return self._request("GET", "/v1/payment_methods/%s" % method_id)
 
-    def _request(self, method, path, data=None, idempotency_key=None, params=None):
+    def _request(self, method, path, data=None, idempotency_key=None, params=None, expand=None):
         headers = {
             "Authorization": "Bearer %s" % self._secret_key,
             "Stripe-Version": STRIPE_VERSION,
         }
         if idempotency_key:
             headers["Idempotency-Key"] = idempotency_key[:255]
+        query = []
+        if isinstance(params, dict):
+            query.extend(params.items())
+        elif params:
+            query.extend(list(params))
+        for item in expand or []:
+            query.append(("expand[]", item))
         try:
             response = requests.request(
                 method,
                 STRIPE_API + path,
                 data=data,
-                params=params,
+                params=query or None,
                 headers=headers,
                 timeout=60,
             )
