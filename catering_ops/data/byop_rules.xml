@@ -96,6 +96,33 @@
         <field name="display_round">none</field>
         <field name="sequence">90</field>
     </record>
+    <record id="rule_byop_lettuce" model="catering.package.rule">
+        <field name="name">Shredded lettuce</field>
+        <field name="package_type_id" ref="package_type_byop"/>
+        <field name="item_code">byop_lettuce</field>
+        <field name="uom_name">handful</field>
+        <field name="apply_mode">per_guest</field>
+        <field name="qty">1.0</field>
+        <field name="sequence">92</field>
+    </record>
+    <record id="rule_byop_tomato" model="catering.package.rule">
+        <field name="name">Sliced tomato</field>
+        <field name="package_type_id" ref="package_type_byop"/>
+        <field name="item_code">byop_tomato</field>
+        <field name="uom_name">slice</field>
+        <field name="apply_mode">per_guest</field>
+        <field name="qty">2.0</field>
+        <field name="sequence">93</field>
+    </record>
+    <record id="rule_byop_onion" model="catering.package.rule">
+        <field name="name">Sliced onion</field>
+        <field name="package_type_id" ref="package_type_byop"/>
+        <field name="item_code">byop_onion</field>
+        <field name="uom_name">ring</field>
+        <field name="apply_mode">per_guest</field>
+        <field name="qty">3.0</field>
+        <field name="sequence">94</field>
+    </record>
     <record id="rule_byop_cups" model="catering.package.rule">
         <field name="name">Cups</field>
         <field name="package_type_id" ref="package_type_byop"/>

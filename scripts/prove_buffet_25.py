@@ -36,7 +36,6 @@ def main():
         "tzatziki_lb": (2.5, "lb"),
         "dressing_lb": (2.5, "lb"),
         "salad_pan": (1.25, "pan"),
-        "cup": (25.0, "each"),
         "plate": (25.0, "each"),
         "napkin": (25.0, "each"),
         "plasticware": (25.0, "each"),

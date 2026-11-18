@@ -62,3 +62,54 @@ class CateringPackageRule(models.Model):
                 ]
             ).write(vals)
         return True
+
+    @api.model
+    def apply_cz_comparison_updates(self):
+        """Apply the 2026-11-18 CaterZen comparison rules on install and upgrade.
+
+        Seed XML for Buffet is noupdate, so editing those files does not change
+        an existing database. This method only writes the approved rows:
+
+        - BYOP toppings (create if missing, otherwise set the approved qty)
+        - deactivate per-guest cup, ice, tong, and spoon rules
+
+        Protein, salad, hummus, tzatziki, dressing, rice, and pita rules are
+        not written. Nothing is deleted.
+        """
+        toppings = (
+            ("byop_lettuce", "Shredded lettuce", "handful", 1.0, 92),
+            ("byop_tomato", "Sliced tomato", "slice", 2.0, 93),
+            ("byop_onion", "Sliced onion", "ring", 3.0, 94),
+        )
+        package = self.env["catering.package.type"].search([("code", "=", "byop")], limit=1)
+        if package:
+            for item_code, name, uom_name, qty, sequence in toppings:
+                vals = {
+                    "name": name,
+                    "package_type_id": package.id,
+                    "item_code": item_code,
+                    "uom_name": uom_name,
+                    "apply_mode": "per_guest",
+                    "qty": qty,
+                    "sequence": sequence,
+                    "active": True,
+                    "is_addon": False,
+                    "display_round": "none",
+                }
+                existing = self.with_context(active_test=False).search(
+                    [
+                        ("package_type_id", "=", package.id),
+                        ("item_code", "=", item_code),
+                    ],
+                    limit=1,
+                )
+                if existing:
+                    existing.write(vals)
+                else:
+                    self.create(vals)
+        retired = self.with_context(active_test=False).search(
+            [("item_code", "in", ["cup", "ice", "small_spoon", "medium_spoon", "tongs"])]
+        )
+        if retired:
+            retired.write({"active": False})
+        return True

@@ -1,4 +1,4 @@
-"""Pita split by people; ice YES; section headers blank qty."""
+"""Pita split by people; tea ice is a driver count; section headers blank qty."""
 import importlib.util
 from pathlib import Path
 
@@ -39,9 +39,13 @@ raw = engine.compute_prep_lines(
     pita_style="split",
 )
 en = engine.enrich_lines(raw, needs_ice=True)
+en = en + engine.build_service_lines(en, sweet_tea_qty=1, unsweet_tea_qty=1, needs_ice=True)
 food = engine.lines_for_sheet(en, "food")
-ice = [l for l in food if l.get("item_code") == "ice"][0]
-assert ice["qty_display"] == "YES", ice
+driver = engine.lines_for_sheet(en, "driver")
+assert not [l for l in food if l.get("item_code") == "ice"]
+ice = [l for l in driver if l.get("item_code") == "ice"][0]
+assert ice["qty_display"] == "2", ice
+assert ice["quantity"] == 2
 sections = [l for l in food if l.get("is_section")]
 assert sections and all(l.get("qty_display", "") == "" for l in sections), sections[0]
-print("PASS pita people split + ice YES + blank section qty")
+print("PASS pita people split + driver ice count + blank section qty")

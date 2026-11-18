@@ -215,13 +215,18 @@ ITEM_PLACEMENT = {
     "pita_whole": ("food", "pitabread"),
     "pita_grilled": ("food", "pitabread"),
     "pita_fried": ("food", "pitabread"),
+    # food / TOPPINGS (BYOP only)
+    "byop_lettuce": ("food", "toppings"),
+    "byop_tomato": ("food", "toppings"),
+    "byop_onion": ("food", "toppings"),
     # food / SIDES
     "rice_scoop": ("food", "sides"),
     "salad_pan": ("food", "sides"),
-    # food / EXTRAS
+    # food / EXTRAS (dips stay here; order add-ons use addons)
     "hummus_lb": ("food", "extras"),
     "tzatziki_lb": ("food", "extras"),
     "dressing_lb": ("food", "extras"),
+    "order_extra": ("food", "addons"),
     # food / DESSERTS + DRINKS
     "cookie": ("food", "desserts"),
     "baklava": ("food", "desserts"),
@@ -230,7 +235,8 @@ ITEM_PLACEMENT = {
     "sweet_tea": ("food", "drinks"),
     "unsweet_tea": ("food", "drinks"),
     # driver
-    "ice": ("food", "drinks"),
+    "ice": ("driver", "drinks"),
+    "sweetener": ("driver", "drinks"),
     "plate": ("driver", "paper_goods"),
     "napkin": ("driver", "paper_goods"),
     "plasticware": ("driver", "paper_goods"),
@@ -242,18 +248,42 @@ ITEM_PLACEMENT = {
     "tongs": ("driver", "serving_utensils"),
 }
 
-FOOD_CATEGORY_ORDER = ["meat", "pitabread", "sides", "extras", "desserts", "drinks"]
+FOOD_CATEGORY_ORDER = [
+    "meat",
+    "pitabread",
+    "toppings",
+    "sides",
+    "extras",
+    "addons",
+    "desserts",
+    "drinks",
+]
 DRIVER_CATEGORY_ORDER = ["drinks", "paper_goods", "serving_utensils"]
 CATEGORY_LABEL = {
     "meat": "MEAT",
     "pitabread": "PITABREAD",
+    "toppings": "TOPPINGS",
     "sides": "SIDES",
     "extras": "EXTRAS",
+    "addons": "EXTRAS/ADD-ONS",
     "desserts": "DESSERTS",
     "drinks": "DRINKS",
     "paper_goods": "PAPER GOODS",
     "serving_utensils": "SERVING UTENSILS",
 }
+# Package-rule copies of these codes are ignored. build_service_lines owns them.
+SERVICE_RULE_CODES = {"cup", "ice", "small_spoon", "medium_spoon", "tongs"}
+PROTEIN_TONG_CODES = (
+    "chicken_skewer",
+    "chicken_breast",
+    "gyro_oz",
+    "falafel_ball",
+    "steak_skewer",
+    "salmon_skewer",
+    "lamb_skewer",
+)
+TOPPING_TONG_CODES = ("byop_lettuce", "byop_tomato", "byop_onion")
+DIP_SPOON_CODES = ("hummus_lb", "tzatziki_lb", "dressing_lb")
 DISPLAY_NAME_OVERRIDE = {
     "plasticware": "Silverware packets",
     "silverware": "Silverware packets",
@@ -265,19 +295,22 @@ def place_line(item_code):
 
 
 def enrich_lines(lines, needs_ice=True, include_opt_in=None):
-    """Attach sheet_type/category, rename labels, drop ice if not needed.
+    """Attach sheet_type/category and rename labels.
 
     Desserts / gallon teas / dessert plates are order opt-in only. Any leftover
     package-rule lines for those codes are stripped unless injected via
     include_opt_in.
+
+    Cups, ice, tongs, and spoons from package rules are stripped here.
+    build_service_lines adds the tea-based and per-dish counts. needs_ice is
+    kept so older callers still pass it; it no longer prints Ice YES.
     """
+    del needs_ice  # ice count is decided in build_service_lines
     opt_in_codes = {"cookie", "baklava", "mini_baklava", "dessert_triangle", "sweet_tea", "unsweet_tea", "dessert_plate"}
     out = []
     for line in lines:
         code = line.get("item_code") or ""
-        if code in opt_in_codes:
-            continue
-        if code == "ice" and not needs_ice:
+        if code in opt_in_codes or code in SERVICE_RULE_CODES:
             continue
         sheet_type, category = place_line(code)
         name = DISPLAY_NAME_OVERRIDE.get(code, line.get("name"))
@@ -286,11 +319,7 @@ def enrich_lines(lines, needs_ice=True, include_opt_in=None):
         row["sheet_type"] = sheet_type
         row["category"] = category
         row["is_section"] = False
-        if code == "ice":
-            row["quantity"] = 0.0
-            row["uom_name"] = ""
-            row["qty_display"] = "YES"
-        elif not row.get("qty_display"):
+        if not row.get("qty_display"):
             q = float(row.get("quantity") or 0.0)
             row["qty_display"] = ("%s" % q).rstrip("0").rstrip(".") if q else ""
         out.append(row)
@@ -320,7 +349,7 @@ def _line_visible_on_sheet(line):
 def lines_for_sheet(lines, sheet_type):
     """Return section headers + lines for one sheet. Empty categories omitted.
 
-    Section headers have blank qty_display (no 0.0). Ice uses YES/NO text.
+    Section headers have blank qty_display (no 0.0).
     """
     order = FOOD_CATEGORY_ORDER if sheet_type == "food" else DRIVER_CATEGORY_ORDER
     selected = [
@@ -375,7 +404,6 @@ BUFFET_RULES = [
     {"name": "Tzatziki", "item_code": "tzatziki_lb", "uom_name": "lb", "apply_mode": "per_10_guests", "qty": 1.0, "is_addon": False, "option_code": None, "sequence": 80},
     {"name": "Greek dressing", "item_code": "dressing_lb", "uom_name": "lb", "apply_mode": "per_10_guests", "qty": 1.0, "is_addon": False, "option_code": None, "sequence": 90},
     {"name": "Greek salad side", "item_code": "salad_pan", "uom_name": "pan", "apply_mode": "per_10_guests", "qty": 0.5, "is_addon": False, "option_code": None, "sequence": 100, "display_round": "none"},
-    {"name": "Cups", "item_code": "cup", "uom_name": "each", "apply_mode": "per_guest", "qty": 1.0, "is_addon": False, "option_code": None, "sequence": 110},
     {"name": "Plates", "item_code": "plate", "uom_name": "each", "apply_mode": "per_guest", "qty": 1.0, "is_addon": False, "option_code": None, "sequence": 120},
     {"name": "Napkins", "item_code": "napkin", "uom_name": "each", "apply_mode": "per_guest", "qty": 1.0, "is_addon": False, "option_code": None, "sequence": 130},
     {"name": "Plasticware", "item_code": "plasticware", "uom_name": "each", "apply_mode": "per_guest", "qty": 1.0, "is_addon": False, "option_code": None, "sequence": 140},
@@ -393,7 +421,9 @@ BYOP_RULES = [
     {"name": "Tzatziki", "item_code": "tzatziki_lb", "uom_name": "lb", "apply_mode": "per_10_guests", "qty": 1.0, "is_addon": False, "option_code": None, "sequence": 70},
     {"name": "Greek dressing", "item_code": "dressing_lb", "uom_name": "lb", "apply_mode": "per_10_guests", "qty": 1.0, "is_addon": False, "option_code": None, "sequence": 80},
     {"name": "Greek salad side", "item_code": "salad_pan", "uom_name": "pan", "apply_mode": "per_10_guests", "qty": 0.5, "is_addon": False, "option_code": None, "sequence": 90, "display_round": "none"},
-    {"name": "Cups", "item_code": "cup", "uom_name": "each", "apply_mode": "per_guest", "qty": 1.0, "is_addon": False, "option_code": None, "sequence": 100},
+    {"name": "Shredded lettuce", "item_code": "byop_lettuce", "uom_name": "handful", "apply_mode": "per_guest", "qty": 1.0, "is_addon": False, "option_code": None, "sequence": 92},
+    {"name": "Sliced tomato", "item_code": "byop_tomato", "uom_name": "slice", "apply_mode": "per_guest", "qty": 2.0, "is_addon": False, "option_code": None, "sequence": 93},
+    {"name": "Sliced onion", "item_code": "byop_onion", "uom_name": "ring", "apply_mode": "per_guest", "qty": 3.0, "is_addon": False, "option_code": None, "sequence": 94},
     {"name": "Plates", "item_code": "plate", "uom_name": "each", "apply_mode": "per_guest", "qty": 1.0, "is_addon": False, "option_code": None, "sequence": 110},
     {"name": "Napkins", "item_code": "napkin", "uom_name": "each", "apply_mode": "per_guest", "qty": 1.0, "is_addon": False, "option_code": None, "sequence": 120},
     {"name": "Plasticware", "item_code": "plasticware", "uom_name": "each", "apply_mode": "per_guest", "qty": 1.0, "is_addon": False, "option_code": None, "sequence": 130},
@@ -412,20 +442,14 @@ GREEK_SALAD_RULES = [
     {"name": "Tzatziki", "item_code": "tzatziki_lb", "uom_name": "lb", "apply_mode": "per_10_guests", "qty": 1.0, "is_addon": False, "option_code": None, "sequence": 70},
     {"name": "Greek dressing", "item_code": "dressing_lb", "uom_name": "lb", "apply_mode": "per_10_guests", "qty": 1.0, "is_addon": False, "option_code": None, "sequence": 80},
     {"name": "Greek salad", "item_code": "salad_pan", "uom_name": "pan", "apply_mode": "per_10_guests", "qty": 0.5, "is_addon": False, "option_code": None, "sequence": 90, "display_round": "none"},
-    {"name": "Cups", "item_code": "cup", "uom_name": "each", "apply_mode": "per_guest", "qty": 1.0, "is_addon": False, "option_code": None, "sequence": 100},
     {"name": "Plates", "item_code": "plate", "uom_name": "each", "apply_mode": "per_guest", "qty": 1.0, "is_addon": False, "option_code": None, "sequence": 110},
     {"name": "Napkins", "item_code": "napkin", "uom_name": "each", "apply_mode": "per_guest", "qty": 1.0, "is_addon": False, "option_code": None, "sequence": 120},
     {"name": "Plasticware", "item_code": "plasticware", "uom_name": "each", "apply_mode": "per_guest", "qty": 1.0, "is_addon": False, "option_code": None, "sequence": 130},
 ]
 
-# Shared extras (cookies/tea/ice/utensils/dessert plates). Applied per package in XML.
-SHARED_EXTRAS_RULES = [
-    # Ice + utensils always available via package rules. Cookies/tea/dessert plates are order opt-in.
-    {"name": "Ice", "item_code": "ice", "uom_name": "each", "apply_mode": "per_guest", "qty": 0.08, "is_addon": False, "option_code": None, "sequence": 220},
-    {"name": "Small spoon", "item_code": "small_spoon", "uom_name": "each", "apply_mode": "per_guest", "qty": 0.08, "is_addon": False, "option_code": None, "sequence": 240},
-    {"name": "Medium spoon", "item_code": "medium_spoon", "uom_name": "each", "apply_mode": "per_guest", "qty": 0.08, "is_addon": False, "option_code": None, "sequence": 250},
-    {"name": "Tongs", "item_code": "tongs", "uom_name": "each", "apply_mode": "per_guest", "qty": 0.20, "is_addon": False, "option_code": None, "sequence": 260},
-]
+# Cups, ice, and utensils are no longer per-guest package rules.
+# build_service_lines computes them. Kept as an empty list so older prove scripts still import it.
+SHARED_EXTRAS_RULES = []
 
 
 def build_opt_in_extras(
@@ -437,7 +461,13 @@ def build_opt_in_extras(
     unsweet_tea_qty=0.0,
     guest_count=0,
 ):
-    """Optional dessert/tea lines. Qty > 0 means on the ticket; multiple allowed. Plates if any dessert."""
+    """Optional dessert/tea lines. Qty > 0 means on the ticket; multiple allowed.
+
+    Dessert plates equal the dessert pieces (cookies + baklava + mini baklava
+    + dessert triangles), not the guest count. guest_count is unused and kept
+    so existing callers do not break.
+    """
+    del guest_count
     lines = []
     seq = 200
     desserts = [
@@ -446,10 +476,10 @@ def build_opt_in_extras(
         ("mini_baklava", "Mini baklava", "each", float(mini_baklava_qty or 0.0)),
         ("dessert_triangle", "Assorted Dessert Triangles", "each", float(dessert_triangle_qty or 0.0)),
     ]
-    any_dessert = False
+    dessert_total = 0.0
     for code, name, uom, qty in desserts:
         if qty > 0:
-            any_dessert = True
+            dessert_total += qty
             lines.append(
                 {
                     "sequence": seq,
@@ -460,19 +490,17 @@ def build_opt_in_extras(
                 }
             )
             seq += 10
-    if any_dessert:
-        g = float(guest_count or 0.0)
-        if g > 0:
-            lines.append(
-                {
-                    "sequence": seq,
-                    "name": "Dessert plates",
-                    "item_code": "dessert_plate",
-                    "quantity": g,
-                    "uom_name": "each",
-                }
-            )
-            seq += 10
+    if dessert_total > 0:
+        lines.append(
+            {
+                "sequence": seq,
+                "name": "Dessert plates",
+                "item_code": "dessert_plate",
+                "quantity": dessert_total,
+                "uom_name": "each",
+            }
+        )
+        seq += 10
     teas = [
         ("sweet_tea", "Sweet tea", float(sweet_tea_qty or 0.0)),
         ("unsweet_tea", "Unsweet tea", float(unsweet_tea_qty or 0.0)),
@@ -490,6 +518,122 @@ def build_opt_in_extras(
             )
             seq += 10
     return lines
+
+
+def _qty_for(lines, code):
+    total = 0.0
+    for line in lines:
+        if line.get("is_section"):
+            continue
+        if (line.get("item_code") or "") == code:
+            total += float(line.get("quantity") or 0.0)
+    return total
+
+
+def _display_qty(qty):
+    qty = float(qty or 0.0)
+    if not qty:
+        return ""
+    return ("%s" % qty).rstrip("0").rstrip(".")
+
+
+def build_service_lines(lines, sweet_tea_qty=0.0, unsweet_tea_qty=0.0, needs_ice=True):
+    """Driver cups, ice, sweeteners, tongs, and spoons.
+
+    Cups = 10 per gallon of sweet + unsweet tea.
+    Ice = 1 per gallon, as a count on the Driver Pull Sheet. Omitted when
+    needs_ice is off (count 0) or when there is no tea.
+    Sweeteners = 1 per gallon of unsweet tea only.
+    No tea means no cups, ice, or sweeteners.
+
+    Tongs (whole numbers, one per dish, not per guest):
+    - 1 per protein type with quantity > 0
+    - 1 if the salad pan quantity is > 0
+    - 1 per BYOP topping line with quantity > 0 (lettuce, tomato, onion)
+    - 1 if any cut pita (grilled or fried) is > 0
+    Whole pita does not add a tong.
+
+    Small spoons: 1 per dip with quantity > 0 (hummus, tzatziki, dressing).
+    Medium spoons: 1 if rice scoops are > 0 (Buffet). Order extras never count.
+    """
+    sweet = float(sweet_tea_qty or 0.0)
+    unsweet = float(unsweet_tea_qty or 0.0)
+    gallons = sweet + unsweet
+    out = []
+
+    def add(seq, name, code, qty, uom, sheet, category):
+        qty = float(qty or 0.0)
+        if qty <= 0:
+            return
+        out.append(
+            {
+                "sequence": seq,
+                "name": name,
+                "item_code": code,
+                "quantity": qty,
+                "uom_name": uom,
+                "sheet_type": sheet,
+                "category": category,
+                "is_section": False,
+                "qty_display": _display_qty(qty),
+            }
+        )
+
+    if gallons > 0:
+        add(800, "Cups", "cup", gallons * 10.0, "each", "driver", "paper_goods")
+        if needs_ice:
+            add(810, "Ice", "ice", gallons, "each", "driver", "drinks")
+        add(820, "Sweeteners", "sweetener", unsweet, "each", "driver", "drinks")
+
+    tongs = 0
+    for code in PROTEIN_TONG_CODES:
+        if _qty_for(lines, code) > 0:
+            tongs += 1
+    if _qty_for(lines, "salad_pan") > 0:
+        tongs += 1
+    for code in TOPPING_TONG_CODES:
+        if _qty_for(lines, code) > 0:
+            tongs += 1
+    if _qty_for(lines, "pita_grilled") + _qty_for(lines, "pita_fried") > 0:
+        tongs += 1
+    small = 0
+    for code in DIP_SPOON_CODES:
+        if _qty_for(lines, code) > 0:
+            small += 1
+    medium = 1 if _qty_for(lines, "rice_scoop") > 0 else 0
+    add(830, "Tongs", "tongs", tongs, "each", "driver", "serving_utensils")
+    add(840, "Small spoons", "small_spoon", small, "each", "driver", "serving_utensils")
+    add(850, "Medium spoons", "medium_spoon", medium, "each", "driver", "serving_utensils")
+    return out
+
+
+def append_order_extras(lines, extras):
+    """Print order add-ons on the Food Sheet. Does not change any other line."""
+    out = [dict(line) for line in lines]
+    seq = 9000
+    for extra in extras or []:
+        name = (extra.get("name") or "").strip()
+        qty = float(extra.get("quantity") or 0.0)
+        if not name or qty <= 0:
+            continue
+        note = (extra.get("note") or "").strip()
+        label = name if not note else "%s — %s" % (name, note)
+        out.append(
+            {
+                "sequence": seq,
+                "name": label,
+                "item_code": "order_extra",
+                "quantity": qty,
+                "uom_name": extra.get("uom_name") or "",
+                "sheet_type": "food",
+                "category": "addons",
+                "is_section": False,
+                "qty_display": _display_qty(qty),
+            }
+        )
+        seq += 10
+    return out
+
 
 BUFFET_PREMIUM_RULES = [
     {"name": "Steak skewers", "item_code": "steak_skewer", "uom_name": "skewer", "apply_mode": "per_option_guest", "qty": 2.0, "is_addon": False, "option_code": "steak", "sequence": 15},
