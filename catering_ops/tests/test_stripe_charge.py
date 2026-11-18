@@ -153,6 +153,86 @@ class TestStripeCharge(TransactionCase):
             for value in record.read()[0].values():
                 self.assertNotIn("4242424242424242", str(value))
 
+    def test_off_session_refreshes_blank_saved_card_before_receipt(self):
+        company = self._company("Fayetteville")
+        order = self._order(company)
+        saved = self._saved_card(order)
+        saved.write({"brand": False, "last4": False, "exp_month": 0, "exp_year": 0})
+        calls = []
+
+        def fake_request(method, url, data=None, params=None, headers=None, timeout=None):
+            calls.append(url)
+            if url.endswith("/v1/payment_intents"):
+                return FakeResponse(
+                    200,
+                    {
+                        "id": "pi_test_blank",
+                        "status": "succeeded",
+                        "customer": "cus_test_guest",
+                        "payment_method": "pm_test_card",
+                    },
+                )
+            if url.endswith("/v1/payment_methods/pm_test_card"):
+                return FakeResponse(
+                    200,
+                    {
+                        "id": "pm_test_card",
+                        "type": "card",
+                        "card": {
+                            "brand": "visa",
+                            "last4": "4242",
+                            "exp_month": 12,
+                            "exp_year": 2030,
+                        },
+                    },
+                )
+            raise AssertionError(url)
+
+        with patch(
+            "odoo.addons.catering_ops.models.sale_order_charge.get_stripe_secret_key",
+            return_value="rk_test_dummy",
+        ), patch("odoo.addons.catering_ops.stripe_api.requests.request", side_effect=fake_request):
+            order.action_catering_stripe_charge()
+
+        self.assertTrue(any(url.endswith("/v1/payment_methods/pm_test_card") for url in calls))
+        self.assertNotIn("/v1/charges", " ".join(calls))
+        self.assertTrue(order.catering_paid)
+        payment = order._catering_paid_payment()
+        self.assertEqual(payment.brand, "Visa")
+        self.assertEqual(payment.last4, "4242")
+        self.assertEqual(order.catering_card_brand, "Visa")
+        self.assertEqual(order.catering_card_last4, "4242")
+        self.assertEqual(saved.brand, "Visa")
+        self.assertEqual(saved.last4, "4242")
+        self.assertEqual(saved.exp_month, 12)
+        self.assertEqual(saved.exp_year, 2030)
+        self.assertEqual(order._catering_receipt_card(), "Visa ending 4242")
+        body = (
+            self.env["mail.mail"]
+            .search([("model", "=", "sale.order"), ("res_id", "=", order.id)])
+            .body_html
+            or ""
+        )
+        self.assertIn("Visa ending 4242", body)
+        self.assertNotIn(">Card:<", body)
+        self.assertNotIn("Card:", body)
+        self.assertNotIn("4242424242424242", body)
+
+    def test_receipt_says_card_on_file_when_brand_is_unknown(self):
+        company = self._company("Fayetteville")
+        order = self._order(company)
+        self.env["catering.payment"].create(
+            {
+                "order_id": order.id,
+                "amount": order.amount_total,
+                "status": "paid",
+                "brand": False,
+                "last4": False,
+            }
+        )
+        order.catering_paid = True
+        self.assertEqual(order._catering_receipt_card(), "Card on file")
+
     def test_decline_is_stored_and_order_stays_unpaid(self):
         company = self._company("Fayetteville")
         order = self._order(company)

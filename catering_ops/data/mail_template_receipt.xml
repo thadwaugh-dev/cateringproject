@@ -17,7 +17,7 @@
     <p>Package: <t t-out="object.catering_package_type_id.name or ''"/></p>
     <p>Guest count: <t t-out="object.catering_guest_count or 0"/></p>
     <p>Total: <t t-out="object._catering_receipt_total()"/></p>
-    <p>Card: <t t-out="object._catering_receipt_card()"/></p>
+    <p><t t-out="object._catering_receipt_card()"/></p>
     <p>Company: <t t-out="object.company_id.name or ''"/></p>
 </div>
         </field>

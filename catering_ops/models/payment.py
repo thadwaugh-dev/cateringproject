@@ -39,3 +39,8 @@ class CateringPayment(models.Model):
             session = payment.stripe_checkout_session_id
             if session and not re.fullmatch(r"cs_[A-Za-z0-9_]+", session):
                 raise ValidationError("The Stripe checkout id is not valid.")
+
+    def action_refresh_card_details(self):
+        """Load brand and last 4 for this payment. Does not charge the card again."""
+        self.ensure_one()
+        return self.order_id._catering_refresh_payment_card(self)

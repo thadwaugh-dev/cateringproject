@@ -108,8 +108,13 @@ class SaleOrderCharge(models.Model):
                 self._catering_mark_failed(err.public_message, intent_id=err.payment_intent_id)
                 return self._catering_failed_action(err.public_message)
             if intent.get("status") == "succeeded":
-                payment_method = self._catering_load_payment_method(client, intent)
-                self._catering_mark_paid(intent, payment_method=payment_method)
+                resolved = self._catering_resolve_card(
+                    client, intent, card.stripe_payment_method_id or ""
+                )
+                self._catering_mark_paid(
+                    resolved["intent"] or intent,
+                    payment_method=resolved["payment_method"],
+                )
                 return self._catering_reload()
             if intent.get("status") in ("requires_action", "requires_confirmation"):
                 return self._catering_open_checkout(client)
@@ -144,10 +149,14 @@ class SaleOrderCharge(models.Model):
                 message = public_message(last_error)
             self._catering_mark_failed(message, intent_id=intent.get("id") or "", session_id=session_id)
             return
-        payment_method = self._catering_load_payment_method(client, intent)
-        customer_id = session.get("customer") or intent.get("customer") or ""
-        self._catering_save_card(customer_id, payment_method)
-        self._catering_mark_paid(intent, session_id=session_id, payment_method=payment_method)
+        resolved = self._catering_resolve_card(client, intent)
+        customer_id = session.get("customer") or (resolved["intent"] or intent).get("customer") or ""
+        self._catering_save_card(customer_id, resolved["payment_method"], resolved["intent"] or intent)
+        self._catering_mark_paid(
+            resolved["intent"] or intent,
+            session_id=session_id,
+            payment_method=resolved["payment_method"],
+        )
         self.catering_paid = True
 
     def action_catering_checkout_cancelled(self):
@@ -244,7 +253,84 @@ class SaleOrderCharge(models.Model):
             self.catering_checkout_session_id = session_id
         return {"type": "ir.actions.act_url", "url": url, "target": "self"}
 
-    def _catering_save_card(self, customer_id, payment_method):
+    def _catering_refresh_payment_card(self, payment):
+        """Read brand and last 4 from Stripe. Does not create a new charge."""
+        self.ensure_one()
+        client = StripeClient(get_stripe_secret_key(self.company_id))
+        saved = self._catering_saved_card()
+        resolved = self._catering_resolve_card(
+            client,
+            payment.stripe_payment_intent_id or None,
+            (saved.stripe_payment_method_id if saved else "") or "",
+        )
+        if not resolved["last4"]:
+            raise UserError("Stripe did not return the card brand or last 4.")
+        payment.write({"brand": resolved["brand"], "last4": resolved["last4"]})
+        customer_id = (resolved["intent"] or {}).get("customer") or ""
+        if isinstance(customer_id, dict):
+            customer_id = customer_id.get("id") or ""
+        if not customer_id and saved:
+            customer_id = saved.stripe_customer_id or ""
+        self._catering_save_card(customer_id, resolved["payment_method"], resolved["intent"])
+        return True
+
+    def _catering_resolve_card(self, client, intent=None, payment_method_id=""):
+        """Card details from the PaymentIntent, then GET /v1/payment_methods/{pm}.
+
+        Does not call the Charges API. A blank saved card is not used as a source.
+        """
+        if isinstance(intent, str) and intent.startswith("pi_"):
+            intent = client.retrieve_payment_intent(intent)
+        if not isinstance(intent, dict):
+            intent = {}
+        payment_method = intent.get("payment_method") or {}
+        if isinstance(payment_method, str):
+            payment_method_id = payment_method_id or payment_method
+            payment_method = {}
+        elif isinstance(payment_method, dict):
+            payment_method_id = payment_method.get("id") or payment_method_id
+        fetched = set()
+
+        def fetch(method_id):
+            if not method_id or method_id in fetched:
+                return None
+            fetched.add(method_id)
+            loaded = client.retrieve_payment_method(method_id)
+            return loaded if isinstance(loaded, dict) else None
+
+        if not _card_last4(payment_method, intent) and payment_method_id:
+            loaded = fetch(payment_method_id)
+            if loaded:
+                payment_method = loaded
+        if not _card_last4(payment_method, intent):
+            saved = self._catering_saved_card()
+            saved_pm = saved.stripe_payment_method_id if saved else ""
+            loaded = fetch(saved_pm)
+            if loaded:
+                payment_method = loaded
+        last4, brand, exp_month, exp_year = _card_fields(payment_method, intent)
+        if not isinstance(payment_method, dict):
+            payment_method = {}
+        if last4 and not _digits4((payment_method.get("card") or {}).get("last4")):
+            payment_method = {
+                "id": payment_method.get("id") or payment_method_id,
+                "card": {
+                    "brand": brand,
+                    "last4": last4,
+                    "exp_month": exp_month,
+                    "exp_year": exp_year,
+                },
+            }
+        return {
+            "intent": intent,
+            "payment_method": payment_method,
+            "last4": last4,
+            "brand": brand,
+            "exp_month": exp_month,
+            "exp_year": exp_year,
+        }
+
+    def _catering_save_card(self, customer_id, payment_method, intent=None):
         self.ensure_one()
         if isinstance(customer_id, dict):
             customer_id = customer_id.get("id") or ""
@@ -254,7 +340,9 @@ class SaleOrderCharge(models.Model):
         customer_id = customer_id or ""
         if not method_id.startswith("pm_") or not str(customer_id).startswith("cus_"):
             return
-        last4, brand, exp_month, exp_year = _card_fields(payment_method, None)
+        last4, brand, exp_month, exp_year = _card_fields(payment_method, intent)
+        if not last4:
+            return
         vals = {
             "partner_id": self.partner_id.id,
             "company_id": self.company_id.id,
@@ -275,7 +363,20 @@ class SaleOrderCharge(models.Model):
         self.ensure_one()
         if self.catering_paid:
             return
-        brand, last4 = self._catering_card_bits(payment_method, intent)
+        last4, brand, _month, _year = _card_fields(payment_method, intent)
+        if not last4:
+            saved = self._catering_saved_card()
+            if saved and saved.last4:
+                brand, last4 = saved.brand or "", saved.last4
+        customer_id = ""
+        if isinstance(intent, dict):
+            customer_id = intent.get("customer") or ""
+        if isinstance(customer_id, dict):
+            customer_id = customer_id.get("id") or ""
+        if not customer_id:
+            saved = self._catering_saved_card()
+            customer_id = saved.stripe_customer_id if saved else ""
+        self._catering_save_card(customer_id, payment_method, intent)
         intent_id = intent.get("id") if isinstance(intent, dict) else ""
         self.env["catering.payment"].create(
             {
@@ -290,11 +391,6 @@ class SaleOrderCharge(models.Model):
                 "idempotency_key": self._catering_idempotency_key(),
             }
         )
-        if isinstance(payment_method, dict):
-            customer_id = ""
-            if isinstance(intent, dict):
-                customer_id = intent.get("customer") or ""
-            self._catering_save_card(customer_id, payment_method)
         self.catering_paid = True
         self.catering_payment_error = False
         self._catering_queue_receipt()
@@ -319,33 +415,6 @@ class SaleOrderCharge(models.Model):
         self.env["catering.payment"].create(vals)
         self.catering_charge_attempt = (self.catering_charge_attempt or 1) + 1
         self.message_post(body="Charge failed: %s" % message)
-
-    def _catering_load_payment_method(self, client, intent):
-        """Return a payment-method dict that includes card brand and last 4.
-
-        Checkout often leaves payment_method as an id, or as an object without
-        the card hash. PaymentMethods Read can load the card. Do not call the
-        Charges API.
-        """
-        payment_method = {}
-        if isinstance(intent, dict):
-            payment_method = intent.get("payment_method") or {}
-        if isinstance(payment_method, str):
-            payment_method = client.retrieve_payment_method(payment_method)
-        if not isinstance(payment_method, dict):
-            payment_method = {}
-        if not _card_last4(payment_method, intent):
-            method_id = payment_method.get("id") if isinstance(payment_method, dict) else ""
-            if method_id:
-                payment_method = client.retrieve_payment_method(method_id)
-        return payment_method if isinstance(payment_method, dict) else {}
-
-    def _catering_card_bits(self, payment_method, intent=None):
-        last4, brand, _month, _year = _card_fields(payment_method, intent)
-        if last4:
-            return brand, last4
-        saved = self._catering_saved_card()
-        return (saved.brand or "", saved.last4 or "")
 
     def _catering_receipt_when(self):
         """Order date in the user timezone, otherwise America/Chicago."""
@@ -372,7 +441,7 @@ class SaleOrderCharge(models.Model):
             return "%s ending %s" % (brand, last4)
         if last4:
             return "Card ending %s" % last4
-        return ""
+        return "Card on file"
 
     def _catering_queue_receipt(self):
         self.ensure_one()

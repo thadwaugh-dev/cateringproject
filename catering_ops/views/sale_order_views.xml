@@ -61,8 +61,9 @@
                         <button name="action_open_driver_sheet" type="object" string="Open Driver Pull Sheet" class="btn-secondary"/>
                     </group>
                     <separator string="Card payments"/>
-                    <field name="catering_payment_ids" readonly="1">
+                    <field name="catering_payment_ids">
                         <list create="false" delete="false" edit="false">
+                            <button name="action_refresh_card_details" type="object" string="Refresh card details" icon="fa-refresh"/>
                             <field name="payment_date"/>
                             <field name="amount"/>
                             <field name="currency_id" column_invisible="1"/>
