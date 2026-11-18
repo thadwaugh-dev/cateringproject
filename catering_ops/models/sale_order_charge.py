@@ -279,7 +279,6 @@ class SaleOrderCharge(models.Model):
                 "Little Greek catering %s" % (self.name or "order")
             )[:120],
             "payment_method_types[0]": "card",
-            "excluded_payment_method_types[0]": "link",
             "payment_method_options[card][setup_future_usage]": "off_session",
         }
         for key, value in self._catering_stripe_metadata().items():

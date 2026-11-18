@@ -169,7 +169,7 @@ class TestStripeCharge(TransactionCase):
                 return FakeResponse(200, {"id": "pm_test_card", "type": "link"})
             if url.endswith("/v1/checkout/sessions"):
                 self.assertEqual((data or {}).get("payment_method_types[0]"), "card")
-                self.assertEqual((data or {}).get("excluded_payment_method_types[0]"), "link")
+                self.assertNotIn("excluded_payment_method_types[0]", data or {})
                 self.assertNotIn("payment_method", data or {})
                 self.assertEqual((data or {}).get("customer"), "cus_test_guest")
                 return FakeResponse(
@@ -343,7 +343,7 @@ class TestStripeCharge(TransactionCase):
         self.assertTrue(action["url"].startswith("https://checkout.stripe.com/"))
         self.assertEqual(len(calls), 2)
         self.assertEqual(calls[1]["data"].get("payment_method_types[0]"), "card")
-        self.assertEqual(calls[1]["data"].get("excluded_payment_method_types[0]"), "link")
+        self.assertNotIn("excluded_payment_method_types[0]", calls[1]["data"])
         self.assertEqual(
             calls[1]["data"].get("payment_method_options[card][setup_future_usage]"),
             "off_session",
