@@ -1,7 +1,14 @@
 from odoo import api, fields, models
 from odoo.exceptions import UserError, ValidationError
 
-from ..qty_engine import build_opt_in_extras, compute_prep_lines, enrich_lines, lines_for_sheet
+from ..qty_engine import (
+    append_order_extras,
+    build_opt_in_extras,
+    build_service_lines,
+    compute_prep_lines,
+    enrich_lines,
+    lines_for_sheet,
+)
 
 CATERING_WRITE_FIELDS = {
     "catering_package_type_id",
@@ -84,6 +91,12 @@ class SaleOrder(models.Model):
     catering_dessert_triangle_qty = fields.Float(string="Assorted Dessert Triangles", default=0.0)
     catering_sweet_tea_qty = fields.Float(string="Sweet tea (gal)", default=0.0)
     catering_unsweet_tea_qty = fields.Float(string="Unsweet tea (gal)", default=0.0)
+    catering_extra_ids = fields.One2many(
+        "catering.order.extra",
+        "order_id",
+        string="Extras / add-ons",
+        help="Printed on the Food Sheet under EXTRAS/ADD-ONS. Not used in food, drink, or utensil math.",
+    )
     catering_pita_cut_style = fields.Selection(
         [
             ("grilled", "Grilled"),
@@ -342,6 +355,24 @@ class SaleOrder(models.Model):
                 raw,
                 needs_ice=order.catering_needs_ice,
                 include_opt_in=opt_in,
+            )
+            enriched = enriched + build_service_lines(
+                enriched,
+                sweet_tea_qty=order.catering_sweet_tea_qty or 0.0,
+                unsweet_tea_qty=order.catering_unsweet_tea_qty or 0.0,
+                needs_ice=order.catering_needs_ice,
+            )
+            enriched = append_order_extras(
+                enriched,
+                [
+                    {
+                        "name": extra.name,
+                        "quantity": extra.quantity,
+                        "uom_name": extra.uom_name,
+                        "note": extra.note,
+                    }
+                    for extra in order.catering_extra_ids
+                ],
             )
 
             food = order._ensure_sheet("food", order.catering_food_sheet_id)

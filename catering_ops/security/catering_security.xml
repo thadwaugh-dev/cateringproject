@@ -10,6 +10,11 @@
         <field name="model_id" ref="model_catering_payment"/>
         <field name="domain_force">[('company_id', 'in', company_ids)]</field>
     </record>
+    <record id="catering_order_extra_company_rule" model="ir.rule">
+        <field name="name">Catering order extra multi-company</field>
+        <field name="model_id" ref="model_catering_order_extra"/>
+        <field name="domain_force">[('company_id', 'in', company_ids)]</field>
+    </record>
     <record id="catering_partner_card_company_rule" model="ir.rule">
         <field name="name">Catering saved card multi-company</field>
         <field name="model_id" ref="model_catering_partner_card"/>

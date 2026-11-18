@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Not noupdate. Runs on install and every Upgrade.
+         Writes BYOP topping rules and deactivates per-guest cup/ice/utensil rules.
+         Does not delete rules and does not rewrite protein, salad, or pita rows. -->
+    <function model="catering.package.rule" name="apply_cz_comparison_updates"/>
+</odoo>

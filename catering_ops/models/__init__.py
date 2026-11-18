@@ -7,4 +7,5 @@ from . import res_partner
 from . import partner_card
 from . import payment
 from . import sale_order
+from . import order_extra
 from . import sale_order_charge

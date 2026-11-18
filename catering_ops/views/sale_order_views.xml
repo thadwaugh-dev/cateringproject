@@ -55,6 +55,17 @@
                         <field name="catering_unsweet_tea_qty"/>
                         <field name="catering_needs_ice"/>
                     </group>
+                    <separator string="Extras / add-ons"/>
+                    <field name="catering_extra_ids">
+                        <list editable="bottom">
+                            <field name="sequence" widget="handle"/>
+                            <field name="name"/>
+                            <field name="quantity"/>
+                            <field name="uom_name"/>
+                            <field name="note"/>
+                            <field name="company_id" column_invisible="1"/>
+                        </list>
+                    </field>
                     <group>
                         <button name="action_compute_catering_prep" type="object" string="Compute Prep Sheet" class="btn-primary"/>
                         <button name="action_open_food_sheet" type="object" string="Open Food Sheet" class="btn-secondary"/>

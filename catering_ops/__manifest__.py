@@ -1,7 +1,7 @@
 {
     "name": "Catering Ops",
     "summary": "Kitchen sheets, customer and venue lookup, and Stripe charges for Little Greek catering",
-    "version": "18.0.1.8.4",
+    "version": "18.0.1.9.0",
     "category": "Sales",
     "author": "Little Greek",
     "license": "LGPL-3",
@@ -24,6 +24,7 @@
         "data/extras_and_premium.xml",
         "data/extras_shared.xml",
         "data/extras_opt_in_deactivate.xml",
+        "data/cz_comparison_update.xml",
     ],
     "installable": True,
     "application": True,

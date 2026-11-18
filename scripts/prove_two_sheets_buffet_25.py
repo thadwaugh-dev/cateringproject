@@ -29,6 +29,12 @@ def run(**opt):
     )
     opt_in = engine.build_opt_in_extras(guest_count=25, **opt)
     en = engine.enrich_lines(raw, needs_ice=True, include_opt_in=opt_in)
+    en = en + engine.build_service_lines(
+        en,
+        sweet_tea_qty=opt.get("sweet_tea_qty") or 0.0,
+        unsweet_tea_qty=opt.get("unsweet_tea_qty") or 0.0,
+        needs_ice=True,
+    )
     return qty_map(engine.lines_for_sheet(en, "food")), qty_map(engine.lines_for_sheet(en, "driver"))
 
 
@@ -38,8 +44,9 @@ def main():
         assert code not in f, code
     assert "dessert_plate" not in d
     assert abs(f["pita_grilled"] - 7.8125) < 1e-9
-    assert "ice" in f  # present on food sheet
+    assert "ice" not in f
     assert "ice" not in d
+    assert "cup" not in d
 
     f2, d2 = run(
         cookie_qty=25,
@@ -55,17 +62,24 @@ def main():
     assert abs(f2["dessert_triangle"] - 5) < 1e-9
     assert abs(f2["sweet_tea"] - 2.0) < 1e-9
     assert abs(f2["unsweet_tea"] - 1.0) < 1e-9
-    assert abs(d2["dessert_plate"] - 25) < 1e-9
+    assert abs(d2["dessert_plate"] - 52) < 1e-9
+    assert abs(d2["cup"] - 30) < 1e-9
+    assert abs(d2["ice"] - 3) < 1e-9
+    assert abs(d2["sweetener"] - 1) < 1e-9
 
-    # Ice shows YES (not a calculated amount)
     rules = engine.BUFFET_RULES + engine.BUFFET_PREMIUM_RULES + engine.SHARED_EXTRAS_RULES
     raw = engine.compute_prep_lines(
         rules, 25, {"chicken": 15, "gyro": 10, "falafel": 0, "steak": 0, "salmon": 0, "lamb": 0},
         hummus=True, hummus_count=25, pita_style="split",
     )
-    food_lines = engine.lines_for_sheet(engine.enrich_lines(raw, needs_ice=True), "food")
-    ice = next(l for l in food_lines if l.get("item_code") == "ice")
-    assert ice.get("qty_display") == "YES", ice
+    enriched = engine.enrich_lines(raw, needs_ice=False)
+    enriched = enriched + engine.build_service_lines(
+        enriched, sweet_tea_qty=2.0, unsweet_tea_qty=1.0, needs_ice=False
+    )
+    food_lines = engine.lines_for_sheet(enriched, "food")
+    driver_lines = engine.lines_for_sheet(enriched, "driver")
+    assert all(l.get("item_code") != "ice" for l in food_lines)
+    assert all(l.get("item_code") != "ice" for l in driver_lines)
     assert all((l.get("qty_display") or "") == "" for l in food_lines if l.get("is_section"))
     print("PASS multi dessert/tea two-sheet proofs")
 

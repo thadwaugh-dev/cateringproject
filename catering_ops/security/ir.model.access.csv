@@ -16,3 +16,5 @@ access_catering_payment_user,catering.payment.user,model_catering_payment,sales_
 access_catering_payment_manager,catering.payment.manager,model_catering_payment,sales_team.group_sale_manager,1,1,1,1
 access_catering_partner_card_user,catering.partner.card.user,model_catering_partner_card,sales_team.group_sale_salesman,1,1,1,0
 access_catering_partner_card_manager,catering.partner.card.manager,model_catering_partner_card,sales_team.group_sale_manager,1,1,1,1
+access_catering_order_extra_user,catering.order.extra.user,model_catering_order_extra,sales_team.group_sale_salesman,1,1,1,1
+access_catering_order_extra_manager,catering.order.extra.manager,model_catering_order_extra,sales_team.group_sale_manager,1,1,1,1
