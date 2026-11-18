@@ -68,6 +68,7 @@
                             <field name="amount"/>
                             <field name="currency_id" column_invisible="1"/>
                             <field name="status"/>
+                            <field name="payment_method_type" string="Type"/>
                             <field name="brand"/>
                             <field name="last4"/>
                             <field name="stripe_payment_intent_id"/>

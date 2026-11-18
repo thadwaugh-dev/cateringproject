@@ -35,6 +35,11 @@ def _card_last4(payment_method, intent):
     return _digits4(_card_dict(payment_method, intent).get("last4"))
 
 
+def _clean_pm_type(value):
+    text = "".join(ch for ch in (value or "").lower() if ch.isalpha() or ch == "_")
+    return text[:32]
+
+
 def _card_fields(payment_method, intent):
     card = _card_dict(payment_method, intent)
     last4 = _digits4(card.get("last4"))
@@ -90,7 +95,7 @@ class SaleOrderCharge(models.Model):
         self._catering_check_can_charge()
         secret = get_stripe_secret_key(self.company_id)
         client = StripeClient(secret)
-        card = self._catering_saved_card()
+        card = self._catering_card_for_off_session(client)
         if card:
             try:
                 intent = client.create_off_session_payment(
@@ -186,6 +191,49 @@ class SaleOrderCharge(models.Model):
             limit=1,
         )
 
+    def _catering_stripe_customer_id(self):
+        self.ensure_one()
+        row = self.env["catering.partner.card"].with_context(active_test=False).search(
+            [
+                ("partner_id", "=", self.partner_id.id),
+                ("company_id", "=", self.company_id.id),
+            ],
+            limit=1,
+        )
+        return row.stripe_customer_id or ""
+
+    def _catering_card_for_off_session(self, client):
+        """Return a saved card token, or an empty record if it cannot be charged off-session.
+
+        Existing rows from before the type was stored are checked once with
+        GET /v1/payment_methods/{pm}. Link and other non-card methods are archived.
+        """
+        self.ensure_one()
+        card = self._catering_saved_card()
+        if not card:
+            return card
+        pm_type = (card.payment_method_type or "").lower()
+        if not pm_type:
+            method = client.retrieve_payment_method(card.stripe_payment_method_id)
+            pm_type = _clean_pm_type(method.get("type") if isinstance(method, dict) else "")
+            if pm_type == "card":
+                self._catering_save_card(card.stripe_customer_id, method)
+                return card
+            self._catering_retire_non_card(card, pm_type or "unknown")
+            return self.env["catering.partner.card"]
+        if pm_type != "card":
+            self._catering_retire_non_card(card, pm_type)
+            return self.env["catering.partner.card"]
+        return card
+
+    def _catering_retire_non_card(self, card, pm_type):
+        label = (pm_type or "unknown").replace("_", " ")
+        card.write({"active": False, "payment_method_type": _clean_pm_type(pm_type) or "unknown"})
+        self.message_post(
+            body="The saved Stripe payment method is %s, not a card. It was not charged. Opening card checkout."
+            % label
+        )
+
     def _catering_stripe_amount(self):
         self.ensure_one()
         currency = self.currency_id
@@ -230,14 +278,16 @@ class SaleOrderCharge(models.Model):
             "line_items[0][price_data][product_data][name]": (
                 "Little Greek catering %s" % (self.name or "order")
             )[:120],
-            "payment_intent_data[setup_future_usage]": "off_session",
             "payment_method_types[0]": "card",
+            "excluded_payment_method_types[0]": "link",
+            "payment_method_options[card][setup_future_usage]": "off_session",
         }
         for key, value in self._catering_stripe_metadata().items():
             payload["metadata[%s]" % key] = value
             payload["payment_intent_data[metadata][%s]" % key] = value
-        if card and card.stripe_customer_id:
-            payload["customer"] = card.stripe_customer_id
+        customer_id = self._catering_stripe_customer_id()
+        if customer_id:
+            payload["customer"] = customer_id
         else:
             payload["customer_creation"] = "always"
             if self.partner_id.email:
@@ -263,9 +313,24 @@ class SaleOrderCharge(models.Model):
             payment.stripe_payment_intent_id or None,
             (saved.stripe_payment_method_id if saved else "") or "",
         )
-        if not resolved["last4"]:
+        pm_type = resolved.get("payment_method_type") or _clean_pm_type(
+            (resolved["payment_method"] or {}).get("type")
+        )
+        if not resolved["last4"] and pm_type in ("", "card"):
             raise UserError("Stripe did not return the card brand or last 4.")
-        payment.write({"brand": resolved["brand"], "last4": resolved["last4"]})
+        payment.write(
+            {
+                "brand": resolved["brand"] or False,
+                "last4": resolved["last4"] or False,
+                "payment_method_type": pm_type or False,
+            }
+        )
+        if pm_type and pm_type != "card":
+            if saved and saved.stripe_payment_method_id == (
+                (resolved["payment_method"] or {}).get("id") or saved.stripe_payment_method_id
+            ):
+                self._catering_retire_non_card(saved, pm_type)
+            return True
         customer_id = (resolved["intent"] or {}).get("customer") or ""
         if isinstance(customer_id, dict):
             customer_id = customer_id.get("id") or ""
@@ -324,6 +389,9 @@ class SaleOrderCharge(models.Model):
         return {
             "intent": intent,
             "payment_method": payment_method,
+            "payment_method_type": _clean_pm_type(
+                payment_method.get("type") if isinstance(payment_method, dict) else ""
+            ),
             "last4": last4,
             "brand": brand,
             "exp_month": exp_month,
@@ -341,19 +409,28 @@ class SaleOrderCharge(models.Model):
         if not method_id.startswith("pm_") or not str(customer_id).startswith("cus_"):
             return
         last4, brand, exp_month, exp_year = _card_fields(payment_method, intent)
-        if not last4:
+        pm_type = _clean_pm_type(payment_method.get("type")) or ("card" if last4 else "")
+        if pm_type != "card" or not last4:
             return
         vals = {
             "partner_id": self.partner_id.id,
             "company_id": self.company_id.id,
             "stripe_customer_id": customer_id,
             "stripe_payment_method_id": method_id,
+            "payment_method_type": "card",
             "brand": brand,
             "last4": last4,
             "exp_month": exp_month,
             "exp_year": exp_year,
+            "active": True,
         }
-        existing = self._catering_saved_card()
+        existing = self.env["catering.partner.card"].with_context(active_test=False).search(
+            [
+                ("partner_id", "=", self.partner_id.id),
+                ("company_id", "=", self.company_id.id),
+            ],
+            limit=1,
+        )
         if existing:
             existing.write(vals)
         else:
@@ -364,6 +441,7 @@ class SaleOrderCharge(models.Model):
         if self.catering_paid:
             return
         last4, brand, _month, _year = _card_fields(payment_method, intent)
+        pm_type = _clean_pm_type(payment_method.get("type") if isinstance(payment_method, dict) else "")
         if not last4:
             saved = self._catering_saved_card()
             if saved and saved.last4:
@@ -384,6 +462,7 @@ class SaleOrderCharge(models.Model):
                 "amount": self.amount_total,
                 "stripe_payment_intent_id": intent_id or False,
                 "stripe_checkout_session_id": session_id or False,
+                "payment_method_type": pm_type or False,
                 "brand": brand,
                 "last4": last4,
                 "status": "paid",
@@ -432,7 +511,7 @@ class SaleOrderCharge(models.Model):
             text = "%s %s" % (text, zone)
         return text
 
-    def _catering_receipt_card(self):
+    def _catering_receipt_payment(self):
         self.ensure_one()
         payment = self._catering_paid_payment()
         brand = payment.brand or ""
@@ -441,7 +520,13 @@ class SaleOrderCharge(models.Model):
             return "%s ending %s" % (brand, last4)
         if last4:
             return "Card ending %s" % last4
+        pm_type = (payment.payment_method_type or "").replace("_", " ").title()
+        if pm_type and pm_type.lower() != "card":
+            return "Paid with %s" % pm_type
         return "Card on file"
+
+    def _catering_receipt_card(self):
+        return self._catering_receipt_payment()
 
     def _catering_queue_receipt(self):
         self.ensure_one()

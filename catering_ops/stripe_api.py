@@ -15,7 +15,7 @@ from odoo.exceptions import UserError
 from odoo.tools import config
 
 STRIPE_API = "https://api.stripe.com"
-STRIPE_VERSION = "2024-06-20"
+STRIPE_VERSION = "2024-11-20.acacia"
 _PAN_RE = re.compile(r"\d(?:[ -]?\d){12,18}")
 
 

@@ -17,6 +17,7 @@ class CateringPayment(models.Model):
     amount = fields.Monetary()
     stripe_payment_intent_id = fields.Char(index=True)
     stripe_checkout_session_id = fields.Char()
+    payment_method_type = fields.Char(string="Type")
     brand = fields.Char()
     last4 = fields.Char(size=4)
     status = fields.Selection(
@@ -33,6 +34,8 @@ class CateringPayment(models.Model):
         for payment in self:
             if payment.last4 and not re.fullmatch(r"\d{4}", payment.last4):
                 raise ValidationError("Only the last 4 digits of a card can be stored.")
+            if payment.payment_method_type and not re.fullmatch(r"[a-z_]{1,32}", payment.payment_method_type):
+                raise ValidationError("The payment method type is not valid.")
             intent = payment.stripe_payment_intent_id
             if intent and not re.fullmatch(r"pi_[A-Za-z0-9_]+", intent):
                 raise ValidationError("The Stripe payment id is not valid.")

@@ -85,6 +85,7 @@ class TestStripeCharge(TransactionCase):
                 "company_id": order.company_id.id,
                 "stripe_customer_id": "cus_test_guest",
                 "stripe_payment_method_id": "pm_test_card",
+                "payment_method_type": "card",
                 "brand": "visa",
                 "last4": "4242",
             }
@@ -152,6 +153,43 @@ class TestStripeCharge(TransactionCase):
         for record in (order, payment, order._catering_saved_card()):
             for value in record.read()[0].values():
                 self.assertNotIn("4242424242424242", str(value))
+
+    def test_link_payment_method_is_not_charged_off_session(self):
+        company = self._company("Fayetteville")
+        order = self._order(company)
+        saved = self._saved_card(order)
+        saved.write({"brand": False, "last4": False, "exp_month": 0, "exp_year": 0, "payment_method_type": False})
+        calls = []
+
+        def fake_request(method, url, data=None, params=None, headers=None, timeout=None):
+            calls.append({"url": url, "data": data or {}})
+            if "/v1/payment_intents" in url and method == "POST":
+                raise AssertionError("Link payment method must not be charged off-session")
+            if url.endswith("/v1/payment_methods/pm_test_card"):
+                return FakeResponse(200, {"id": "pm_test_card", "type": "link"})
+            if url.endswith("/v1/checkout/sessions"):
+                self.assertEqual((data or {}).get("payment_method_types[0]"), "card")
+                self.assertEqual((data or {}).get("excluded_payment_method_types[0]"), "link")
+                self.assertNotIn("payment_method", data or {})
+                self.assertEqual((data or {}).get("customer"), "cus_test_guest")
+                return FakeResponse(
+                    200,
+                    {"id": "cs_test_card_only", "url": "https://checkout.stripe.com/c/pay/cs_test_card_only"},
+                )
+            raise AssertionError(url)
+
+        with patch(
+            "odoo.addons.catering_ops.models.sale_order_charge.get_stripe_secret_key",
+            return_value="rk_test_dummy",
+        ), patch("odoo.addons.catering_ops.stripe_api.requests.request", side_effect=fake_request):
+            action = order.action_catering_stripe_charge()
+
+        self.assertEqual(action["type"], "ir.actions.act_url")
+        self.assertFalse(order.catering_paid)
+        self.assertFalse(saved.active)
+        self.assertEqual(saved.payment_method_type, "link")
+        self.assertEqual(len([call for call in calls if call["url"].endswith("/v1/payment_methods/pm_test_card")]), 1)
+        self.assertFalse(order.catering_payment_ids)
 
     def test_off_session_refreshes_blank_saved_card_before_receipt(self):
         company = self._company("Fayetteville")
@@ -232,6 +270,10 @@ class TestStripeCharge(TransactionCase):
         )
         order.catering_paid = True
         self.assertEqual(order._catering_receipt_card(), "Card on file")
+        self.env["catering.payment"].search([("order_id", "=", order.id)]).write(
+            {"payment_method_type": "link"}
+        )
+        self.assertEqual(order._catering_receipt_payment(), "Paid with Link")
 
     def test_decline_is_stored_and_order_stays_unpaid(self):
         company = self._company("Fayetteville")
@@ -301,6 +343,12 @@ class TestStripeCharge(TransactionCase):
         self.assertTrue(action["url"].startswith("https://checkout.stripe.com/"))
         self.assertEqual(len(calls), 2)
         self.assertEqual(calls[1]["data"].get("payment_method_types[0]"), "card")
+        self.assertEqual(calls[1]["data"].get("excluded_payment_method_types[0]"), "link")
+        self.assertEqual(
+            calls[1]["data"].get("payment_method_options[card][setup_future_usage]"),
+            "off_session",
+        )
+        self.assertNotIn("payment_intent_data[setup_future_usage]", calls[1]["data"])
 
     def test_checkout_return_fills_brand_last4_and_marks_paid(self):
         company = self._company("Fayetteville")

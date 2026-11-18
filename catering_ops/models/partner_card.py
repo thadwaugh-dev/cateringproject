@@ -20,10 +20,12 @@ class CateringPartnerCard(models.Model):
     company_id = fields.Many2one("res.company", required=True, index=True)
     stripe_customer_id = fields.Char(required=True, index=True)
     stripe_payment_method_id = fields.Char(required=True)
+    payment_method_type = fields.Char(string="Type")
     brand = fields.Char()
     last4 = fields.Char(size=4)
     exp_month = fields.Integer()
     exp_year = fields.Integer()
+    active = fields.Boolean(default=True)
 
     _sql_constraints = [
         (
@@ -38,6 +40,8 @@ class CateringPartnerCard(models.Model):
         for card in self:
             if card.last4 and not re.fullmatch(r"\d{4}", card.last4):
                 raise ValidationError("Only the last 4 digits of a card can be stored.")
+            if card.payment_method_type and not re.fullmatch(r"[a-z_]{1,32}", card.payment_method_type):
+                raise ValidationError("The payment method type is not valid.")
             if not re.fullmatch(r"cus_[A-Za-z0-9_]+", card.stripe_customer_id or ""):
                 raise ValidationError("The saved Stripe customer id is not valid.")
             if not re.fullmatch(r"pm_[A-Za-z0-9_]+", card.stripe_payment_method_id or ""):
